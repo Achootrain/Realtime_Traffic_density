@@ -15,29 +15,22 @@ from requests.adapters import HTTPAdapter, Retry
 import os
 
 
-CAMERA_JSON_FILE = "kafka/cameras.json" 
+CAMERA_JSON_FILE = "cameras.json" 
 BASE_URL = "https://giaothong.hochiminhcity.gov.vn/render/ImageHandler.ashx?id="
-BATCH_SIZE = 1          # batch cực nhỏ cho 2GB RAM
-BATCH_DELAY = 12         # delay 30s giữa batch
-MAX_WORKERS = 3          # 1 thread để tiết kiệm RAM + CPU
+BATCH_SIZE = 19          
+BATCH_DELAY = 0.5        
+MAX_WORKERS = 4        
 YOLO_CONF = 0.1
 TARGET_CLASSES = ['car', 'motorcycle', 'bus', 'truck']
 MAX_RETRIES = 3
 BACKOFF_FACTOR = 0.5
-RESIZE_WIDTH = 320       # resize nhỏ để giảm RAM
+RESIZE_WIDTH = 320      
 RESIZE_HEIGHT = 180
 
-# ===============================
-# Logging
-# ===============================
+
 logging.basicConfig(filename='producer.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# ===============================
-# Kafka setup
-# ===============================
 
-# Read bootstrap servers from env (comma-separated), default to in-cluster Service
-# For local testing with port-forward, set KAFKA_BOOTSTRAP_SERVERS=localhost:9094
 _bootstrap = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka.hugedata.svc.cluster.local:9092')
 KAFKA_BOOTSTRAP_SERVERS = [s.strip() for s in _bootstrap.split(',') if s.strip()]
 producer = KafkaProducer(
@@ -47,16 +40,9 @@ producer = KafkaProducer(
     linger_ms=100
 )
 
-# ===============================
-# YOLO setup (Ultralytics v8 API, force CPU at inference time)
-# Using the official ultralytics:latest-python image may already provide the
-# correct device and runtime; we explicitly request CPU when calling predict.
-# ===============================
+
 model = YOLO('yolov8n.pt')
 
-# ===============================
-# Requests session with retry
-# ===============================
 session = requests.Session()
 retries = Retry(
     total=MAX_RETRIES,
@@ -139,7 +125,6 @@ def process_camera(cam):
                     cls_array = cls_data
                 classes = [int(x) for x in cls_array]
             except Exception:
-                # Fallback: iterate and coerce to int
                 classes = [int(x) for x in results.boxes.cls]
 
         vehicles = [model.names[c] for c in classes if model.names[c] in TARGET_CLASSES]
@@ -160,9 +145,6 @@ def process_camera(cam):
     except Exception as e:
         return f"[ERROR] {cam_id}: {e}"
 
-# ===============================
-# Main loop với batch cực nhỏ + delay
-# ===============================
 def main():
     while True:
         start_time = time.time()
