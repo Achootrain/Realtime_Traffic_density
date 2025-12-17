@@ -56,6 +56,13 @@ spec:
           value: "0"
         - name: CLUSTER_ID
           value: "5L6g3nShT-eMCtK--X86sw"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
 
 ---
 apiVersion: v1
