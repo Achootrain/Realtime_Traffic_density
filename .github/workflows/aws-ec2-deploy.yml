@@ -94,6 +94,7 @@ jobs:
             sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
             sudo chown ubuntu:ubuntu ~/.kube/config
             sudo chmod 600 ~/.kube/config
+            export KUBECONFIG=~/.kube/config
             
             cd /home/ubuntu/k8s
             
