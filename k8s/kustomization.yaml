@@ -1,0 +1,24 @@
+namespace: traffic
+
+resources:
+  - namespace.yaml
+  - kafka.yaml
+  - timescaledb.yaml
+  - grafana.yaml
+  - spark-operator-complete-rbac.yaml
+  - spark-realtime-app.yaml
+  - spark-minio-app.yaml
+  - minio-deployment.yaml
+  - minio-bucket.yaml
+  - producer-deployment.yaml
+
+images:
+  - name: kafka-producer:dev
+    newName: docker.io/achootrain/kafka-producer
+    newTag: latest
+  - name: spark-application:dev2
+    newName: docker.io/achootrain/spark-application
+    newTag: latest
+
+commonLabels:
+  app.kubernetes.io/part-of: traffic-system

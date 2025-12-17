@@ -185,7 +185,7 @@ def process_camera(cam):
             "total_count": car_count + bus_count + truck_count + motorcycle_count
         }
 
-        producer.send('traffic', value=data)
+        producer.send('hugedata', value=data)
         return f"[OK] {current_time_vn.strftime('%Y-%m-%d %H:%M:%S')} {cam_id}: {vehicle_counts}"
 
     except Exception as e:

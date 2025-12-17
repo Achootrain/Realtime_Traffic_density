@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: kafka
-  namespace: hugedata
+  namespace: traffic
 spec:
   serviceName: "kafka"
   replicas: 1
@@ -37,7 +37,7 @@ spec:
         
         # Internal = hostname DNS nội bộ, External = localhost (port-forward)
         - name: KAFKA_ADVERTISED_LISTENERS
-          value: "INTERNAL://kafka.hugedata.svc.cluster.local:9092,EXTERNAL://127.0.0.1:9094"
+          value: "INTERNAL://kafka.traffic.svc.cluster.local:9092,EXTERNAL://127.0.0.1:9094"
 
         # Broker nội bộ trao đổi qua INTERNAL listener
         - name: KAFKA_INTER_BROKER_LISTENER_NAME
@@ -47,7 +47,7 @@ spec:
         - name: KAFKA_CONTROLLER_LISTENER_NAMES
           value: "CONTROLLER"
         - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-          value: "1@kafka-0.kafka.hugedata.svc.cluster.local:9093"
+          value: "1@kafka-0.kafka.traffic.svc.cluster.local:9093"
 
         # Một số cấu hình cơ bản
         - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
@@ -62,7 +62,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kafka
-  namespace: hugedata
+  namespace: traffic
 spec:
   selector:
     app: kafka

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: hugedata
+  namespace: traffic
 data:
   datasources.yaml: |
     apiVersion: 1
@@ -11,7 +11,7 @@ data:
         type: postgres
         uid: timescaledb
         access: proxy
-        url: timescaledb.hugedata.svc.cluster.local:5432
+        url: timescaledb.traffic.svc.cluster.local:5432
         database: traffic
         user: postgres
         secureJsonData:
@@ -27,7 +27,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboards-provider
-  namespace: hugedata
+  namespace: traffic
 data:
   dashboards.yaml: |
     apiVersion: 1
@@ -46,7 +46,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-traffic
-  namespace: hugedata
+  namespace: traffic
 data:
   traffic-dashboard.json: |
     {
@@ -797,7 +797,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: hugedata
+  namespace: traffic
 spec:
   replicas: 1
   selector:
@@ -854,7 +854,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: hugedata
+  namespace: traffic
 spec:
   selector:
     app: grafana

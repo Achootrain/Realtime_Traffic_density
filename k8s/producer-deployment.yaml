@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-producer
-  namespace: hugedata
+  namespace: traffic
 spec:
   replicas: 1
   selector:
@@ -19,5 +19,5 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "kafka.hugedata.svc.cluster.local:9092"
+          value: "kafka.traffic.svc.cluster.local:9092"
        

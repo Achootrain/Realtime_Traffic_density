@@ -1,0 +1,126 @@
+name: Build & Deploy to GHCR (K3s)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Which service to deploy?"
+        type: choice
+        required: true
+        default: kafka
+        options:
+          - kafka
+          - spark
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Chuẩn hóa tên Repo (Chữ thường)
+      - name: Lowercase Repo Owner
+        run: |
+          echo "REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
+
+      # 2. Logic chọn service
+      - name: Resolve build target
+        id: target
+        shell: bash
+        run: |
+          set -e
+          CHOSEN_SERVICE="${{ github.event.inputs.service }}"
+          
+          if [[ -z "$CHOSEN_SERVICE" ]]; then
+            if git diff --name-only HEAD^ HEAD | grep -q "^spark/"; then
+               CHOSEN_SERVICE="spark"
+            elif git diff --name-only HEAD^ HEAD | grep -q "^kafka/"; then
+               CHOSEN_SERVICE="kafka"
+            else
+               CHOSEN_SERVICE="kafka"
+            fi
+          fi
+          
+          echo "service=$CHOSEN_SERVICE" >> "$GITHUB_OUTPUT"
+          
+          if [[ "$CHOSEN_SERVICE" == "kafka" ]]; then
+             echo "context=kafka" >> "$GITHUB_OUTPUT"
+             echo "dockerfile=kafka/dockerfile" >> "$GITHUB_OUTPUT"
+             echo "image_name=traffic-kafka" >> "$GITHUB_OUTPUT"
+          elif [[ "$CHOSEN_SERVICE" == "spark" ]]; then
+             echo "context=spark" >> "$GITHUB_OUTPUT"
+             echo "dockerfile=spark/dockerfile" >> "$GITHUB_OUTPUT"
+             echo "image_name=traffic-spark" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 3-4. Skip build & push: use public Docker Hub images (achootrain/*)
+
+      # 5. Copy file YAML lên Server
+      - name: Copy k8s manifests to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "k8s/*.yaml"
+          target: "/home/ubuntu/"
+
+      # 6. Deploy lên K3s (Phần quan trọng nhất)
+      - name: Deploy on K3s
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          REPO_OWNER: ${{ env.REPO_OWNER }}
+          EC2_HOST: ${{ secrets.EC2_HOST }} # IP Mới nhất
+          SERVICE_NAME: ${{ steps.target.outputs.service }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: REPO_OWNER,EC2_HOST,SERVICE_NAME
+          script: |
+            set -e
+            
+            # A. CẤP QUYỀN KUBECTL (Để user ubuntu chạy được lệnh)
+            # Copy config của K3s ra chỗ user ubuntu đọc được
+            mkdir -p ~/.kube
+            sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+            sudo chown ubuntu:ubuntu ~/.kube/config
+            sudo chmod 600 ~/.kube/config
+            
+            cd /home/ubuntu/k8s
+            
+            # B. XỬ LÝ IP ĐỘNG CHO KAFKA (Quan trọng)
+            # Tìm chữ 'IP_PLACEHOLDER' trong file kafka.yaml và thay bằng IP thật
+            sed -i "s/IP_PLACEHOLDER/$EC2_HOST/g" kafka.yaml || true
+            
+            # C. Không cần thay thế username Docker Hub (dùng image cố định achootrain/*)
+
+            echo "Applying Kustomize manifests..."
+
+            # Tạo namespace nếu chưa có
+            kubectl create namespace traffic --dry-run=client -o yaml | kubectl apply -f -
+
+            # Apply tất cả qua kustomization để thống nhất namespace & images
+            kubectl apply -k .
+            
+            # D. FORCE UPDATE (Bắt buộc để code mới chạy)
+            echo "Restarting deployments to pick up new image..."
+            if [ "$SERVICE_NAME" == "kafka" ]; then
+               # Restart Kafka StatefulSet
+               kubectl rollout restart statefulset/kafka -n traffic || true
+            elif [ "$SERVICE_NAME" == "spark" ]; then
+               # Restart Spark Deployment (hoặc xóa SparkApplication để operator tạo lại)
+               # kubectl delete sparkapplication traffic-spark -n traffic || true
+               # kubectl apply -f spark-realtime-app.yaml
+               echo "Spark updated"
+            fi
+            
+            echo "Done."

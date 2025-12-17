@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: timescaledb-pvc
-  namespace: hugedata
+  namespace: traffic
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: timescaledb
-  namespace: hugedata
+  namespace: traffic
 spec:
   serviceName: "timescaledb"
   replicas: 1
@@ -64,7 +64,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: timescaledb
-  namespace: hugedata
+  namespace: traffic
 spec:
   selector:
     app: timescaledb

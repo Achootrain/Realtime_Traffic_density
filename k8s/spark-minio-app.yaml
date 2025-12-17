@@ -2,14 +2,14 @@ apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
   name: spark-pi-python
-  namespace: hugedata
+  namespace: traffic
 spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
   image: spark-application:dev2
   imagePullPolicy: IfNotPresent
-  mainApplicationFile: local:///app/main.py  
+  mainApplicationFile: local:///app/minio.py  
   sparkVersion: 3.5.1
   sparkConf:
     "spark.jars": "local:///opt/spark/jars/hadoop-aws-3.3.4.jar,local:///opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar,local:///opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/kafka-clients-3.5.1.jar,local:///opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/commons-pool2-2.11.1.jar"
@@ -19,9 +19,9 @@ spec:
     serviceAccount: default
     env:
       - name: KAFKA_BOOTSTRAP_SERVERS
-        value: "kafka.hugedata.svc.cluster.local:9092"
+        value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "traffic"
+        value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-minio-group"
     securityContext:
@@ -40,9 +40,9 @@ spec:
     memory: 1g
     env:
       - name: KAFKA_BOOTSTRAP_SERVERS
-        value: "kafka.hugedata.svc.cluster.local:9092"
+        value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "traffic"
+        value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-minio-group"
     securityContext:

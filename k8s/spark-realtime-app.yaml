@@ -2,14 +2,14 @@ apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
   name: spark-realtime-python
-  namespace: hugedata
+  namespace: traffic
 spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: spark-application:dev
+  image: spark-application:dev2
   imagePullPolicy: IfNotPresent
-  mainApplicationFile: local:///app/realtime_app.py
+  mainApplicationFile: local:///app/timeScaleDB.py
   sparkVersion: 3.5.1
   sparkConf:
     "spark.jars.ivy": "/tmp/.ivy2"
@@ -32,13 +32,13 @@ spec:
       - name: HADOOP_USER_NAME
         value: "spark"
       - name: KAFKA_BOOTSTRAP_SERVERS
-        value: "kafka.hugedata.svc.cluster.local:9092"
+        value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "traffic"
+        value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
-        value: "jdbc:postgresql://timescaledb.hugedata.svc.cluster.local:5432/traffic"
+        value: "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic"
       - name: TIMESCALEDB_USER
         value: "postgres"
       - name: TIMESCALEDB_PASSWORD
@@ -70,13 +70,13 @@ spec:
       - name: HADOOP_USER_NAME
         value: "spark"
       - name: KAFKA_BOOTSTRAP_SERVERS
-        value: "kafka.hugedata.svc.cluster.local:9092"
+        value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "traffic"
+        value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
-        value: "jdbc:postgresql://timescaledb.hugedata.svc.cluster.local:5432/traffic"
+        value: "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic"
       - name: TIMESCALEDB_USER
         value: "postgres"
       - name: TIMESCALEDB_PASSWORD

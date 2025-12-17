@@ -27,7 +27,7 @@ logger = logging.getLogger("realtime_app")
 
 
 KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "traffic")
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "hugedata")
 KAFKA_GROUP_ID = os.environ.get("KAFKA_GROUP_ID", "spark-realtime-group")
 KAFKA_STARTING_OFFSETS = os.environ.get("KAFKA_STARTING_OFFSETS", "earliest")
 
