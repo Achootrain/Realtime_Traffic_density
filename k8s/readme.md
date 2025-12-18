@@ -71,7 +71,7 @@ kubectl get pods -n traffic
 kubectl describe sparkapplication spark-realtime-python -n traffic
 
 # Logs
-kubectl logs spark-realtime-python-driver -n traffic --tail=200
+kubectl logs spark-realtime-python-driver -n traffic
 
 # TimescaleDB check (replace pod)
 kubectl exec -n traffic <timescaledb-pod> -- psql -U postgres -d traffic -c "SELECT COUNT(*) FROM traffic_metrics;"

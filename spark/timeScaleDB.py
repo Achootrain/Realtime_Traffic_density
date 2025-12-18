@@ -103,7 +103,7 @@ df_timescale = df_valid.select(
 # ---------------------------------
 # Write to TimescaleDB (PostgreSQL)
 # ---------------------------------
-TIMESCALEDB_URL = os.environ.get("TIMESCALEDB_URL", "jdbc:postgresql://timescaledb.hugedata.svc.cluster.local:5432/traffic")
+TIMESCALEDB_URL = os.environ.get("TIMESCALEDB_URL", "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic")
 TIMESCALEDB_USER = os.environ.get("TIMESCALEDB_USER", "postgres")
 TIMESCALEDB_PASSWORD = os.environ.get("TIMESCALEDB_PASSWORD", "postgres")
 TIMESCALEDB_TABLE = os.environ.get("TIMESCALEDB_TABLE", "traffic_metrics")
