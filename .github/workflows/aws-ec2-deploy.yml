@@ -134,7 +134,7 @@ jobs:
             
             # Hoặc patch trực tiếp container args
             kubectl patch deployment spark-operator-1-controller -n traffic --type='json' \
-              -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["-namespace=traffic", "-v=2"]}]' || true
+              -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["--namespace=traffic", "-v=2"]}]' || true
 
             # Apply tất cả qua kustomization để thống nhất namespace & images
             kubectl apply -k .
