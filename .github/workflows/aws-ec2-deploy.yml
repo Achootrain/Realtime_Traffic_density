@@ -104,24 +104,64 @@ jobs:
             
             # C. Không cần thay thế username Docker Hub (dùng image cố định achootrain/*)
 
+            echo "Setting up Helm and Spark Operator..."
+            
+            # Cài đặt Helm nếu chưa có
+            if ! command -v helm &> /dev/null; then
+              curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+            fi
+            
+            # Thêm Spark Operator Helm repo
+            helm repo add spark-operator https://kubeflow.github.io/spark-operator || true
+            helm repo update
+            
             echo "Applying Kustomize manifests..."
 
             # Tạo namespace nếu chưa có
             kubectl create namespace traffic --dry-run=client -o yaml | kubectl apply -f -
+            
+            # Cài đặt/Upgrade Spark Operator
+            helm upgrade --install spark-operator-1 spark-operator/spark-operator \
+              --namespace traffic \
+              --set sparkJobNamespace=traffic \
+              --set watchNamespace=traffic \
+              --set webhook.enable=true
+            
+            # Patch controller để sửa namespace từ default sang traffic
+            echo "Patching Spark Operator controller namespace..."
+            kubectl set env deployment/spark-operator-1-controller -n traffic \
+              SPARK_OPERATOR_NAMESPACE=traffic || true
+            
+            # Hoặc patch trực tiếp container args
+            kubectl patch deployment spark-operator-1-controller -n traffic --type='json' \
+              -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["-namespace=traffic", "-v=2"]}]' || true
 
             # Apply tất cả qua kustomization để thống nhất namespace & images
             kubectl apply -k .
             
-            # D. FORCE UPDATE (Bắt buộc để code mới chạy)
+            # E. INIT TIMESCALEDB (Chạy init.sql nếu chưa có table)
+            echo "Initializing TimescaleDB..."
+            # Wait for TimescaleDB to be ready
+            kubectl wait --for=condition=ready pod/timescaledb-0 -n traffic --timeout=120s || true
+            
+            # Copy và chạy init.sql
+            if [ -f "/home/ubuntu/timescaledb/init.sql" ]; then
+              kubectl cp /home/ubuntu/timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql
+              kubectl exec timescaledb-0 -n traffic -- psql -U postgres -d traffic -f /tmp/init.sql || true
+              echo "TimescaleDB initialized"
+            fi
+            
+            # F. FORCE UPDATE (Bắt buộc để code mới chạy)
             echo "Restarting deployments to pick up new image..."
             if [ "$SERVICE_NAME" == "kafka" ]; then
                # Restart Kafka StatefulSet
                kubectl rollout restart statefulset/kafka -n traffic || true
             elif [ "$SERVICE_NAME" == "spark" ]; then
-               # Restart Spark Deployment (hoặc xóa SparkApplication để operator tạo lại)
-               # kubectl delete sparkapplication traffic-spark -n traffic || true
-               # kubectl apply -f spark-realtime-app.yaml
-               echo "Spark updated"
+               # Delete và tạo lại SparkApplication để operator deploy lại
+               kubectl delete sparkapplication spark-realtime-python -n traffic --ignore-not-found
+               sleep 5
+               kubectl apply -f spark-realtime-app.yaml -n traffic
+               echo "Spark application restarted"
             fi
             
             echo "Done."
