@@ -7,9 +7,6 @@ resources:
   - grafana.yaml
   - spark-operator-complete-rbac.yaml
   - spark-realtime-app.yaml
-  - spark-minio-app.yaml
-  - minio-deployment.yaml
-  - minio-bucket.yaml
   - producer-deployment.yaml
 
 images:
