@@ -63,14 +63,14 @@ jobs:
 
       # 3-4. Skip build & push: use public Docker Hub images (achootrain/*)
 
-      # 5. Copy file YAML lên Server
+      # 5. Copy file YAML và init.sql lên Server
       - name: Copy k8s manifests to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "k8s/*.yaml"
+          source: "k8s/*.yaml,timescaledb/init.sql,clean.sh"
           target: "/home/ubuntu/"
 
       # 6. Deploy lên K3s (Phần quan trọng nhất)

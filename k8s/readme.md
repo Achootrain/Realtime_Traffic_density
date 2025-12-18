@@ -47,7 +47,7 @@ Initialize schema (use your actual pod name):
 kubectl get pods -n traffic
 
 
-kubectl cp timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql
+kubectl cp /home/ubuntu/timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql
 
 # run init script
 kubectl exec timescaledb-0 -n traffic -- psql -U postgres -d traffic -f /tmp/init.sql
