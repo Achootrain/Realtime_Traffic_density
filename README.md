@@ -16,6 +16,8 @@ Set the following repository secrets:
 - `EC2_HOST`: Public IP or DNS of EC2 (used to SSH and Kafka external announcements if needed)
 - `EC2_USER`: SSH username (e.g., `ubuntu`)
 - `EC2_SSH_KEY`: Private key for SSH (PEM content)
+- `GHCR_USERNAME`: GitHub username that can read the package (often your username)
+- `GHCR_TOKEN`: GitHub Personal Access Token with `read:packages` (and `repo` if the image is private)
 - Optional:
   - `KAFKA_BOOTSTRAP_SERVERS`: If needed by external components (usually in-cluster Service is used)
   - `POSTGRES_PASSWORD`: If you override DB password via manifests (default in manifests is `postgres`)
@@ -62,6 +64,20 @@ kubectl logs -n traffic statefulset/kafka -c kafka --tail=200
 kubectl logs -n traffic deployment/<spark-deployment-or-pod> --tail=200
 kubectl logs -n traffic statefulset/timescaledb --tail=200
 ```
+
+## Pulling Private GHCR Images (Spark)
+If `ghcr.io/achootrain/spark-application:latest` is private, the workflow will auto-create/update a registry secret named `ghcr-secret` in the `traffic` namespace using `GHCR_USERNAME` and `GHCR_TOKEN`.
+
+```bash
+kubectl create secret docker-registry ghcr-secret \
+  -n traffic \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GHCR_TOKEN \
+  --docker-email=YOUR_EMAIL
+```
+
+The Spark manifests already reference this via `imagePullSecrets`.
 
 ## Image References
 - Kustomize remaps image names found in manifests to:
