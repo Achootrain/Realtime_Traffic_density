@@ -16,7 +16,7 @@ spec:
   sparkConf:
     "spark.jars.ivy": "/tmp/.ivy2"
     "spark.jars": "local:///opt/spark/jars/hadoop-aws-3.3.4.jar,local:///opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar,local:///opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/kafka-clients-3.5.1.jar,local:///opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/commons-pool2-2.11.1.jar"
-    "spark.hadoop.fs.s3a.aws.credentials.provider": "com.amazonaws.auth.EnvironmentVariableCredentialsProvider"
+    "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
     # Ensure env var is present even if the operator doesn't propagate spec.driver.env
     "spark.kubernetes.driverEnv.S3_BUCKET": "traffic-count-bigdata"
     "spark.kubernetes.executorEnv.S3_BUCKET": "traffic-count-bigdata"

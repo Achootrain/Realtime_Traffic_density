@@ -3,10 +3,7 @@ namespace: traffic
 resources:
   - namespace.yaml
   - kafka.yaml
-  - timescaledb.yaml
-  - grafana.yaml
   - spark-operator-complete-rbac.yaml
-  - spark-realtime-app.yaml
   - spark-s3-glacier-app.yaml
   - producer-deployment.yaml
 

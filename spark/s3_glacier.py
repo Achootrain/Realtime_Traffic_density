@@ -19,6 +19,26 @@ spark.sparkContext.setLogLevel("WARN")
 # ==========================================
 # 2. Lấy biến môi trường
 # ==========================================
+aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
+aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+
+if aws_access_key and aws_secret_key:
+    # Set in Runtime Config (for tasks/executors if they pick it up via SQLConf)
+    spark.conf.set("spark.hadoop.fs.s3a.access.key", aws_access_key)
+    spark.conf.set("spark.hadoop.fs.s3a.secret.key", aws_secret_key)
+    spark.conf.set("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+    
+    # Set in Driver's Hadoop Config (immediate effect for Driver file operations)
+    try:
+        sc = spark.sparkContext
+        sc._jsc.hadoopConfiguration().set("fs.s3a.access.key", aws_access_key)
+        sc._jsc.hadoopConfiguration().set("fs.s3a.secret.key", aws_secret_key)
+        sc._jsc.hadoopConfiguration().set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        print("[INFO] AWS Credentials loaded from environment variables and set in Hadoop Config")
+    except Exception as e:
+        print(f"[WARN] Failed to set Hadoop config on Driver directly: {e}")
+else:
+    print("[WARN] AWS Credentials not found in environment variables! S3A may fail.")
 kafka_bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka.traffic.svc.cluster.local:9092")
 kafka_topic = os.environ.get("KAFKA_TOPIC", "traffic")
 kafka_group_id = os.environ.get("KAFKA_GROUP_ID", "spark-s3-glacier-group")
