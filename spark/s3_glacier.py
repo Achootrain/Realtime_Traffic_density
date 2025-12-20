@@ -17,10 +17,31 @@ spark = (
 spark.sparkContext.setLogLevel("WARN")
 
 # ==========================================
-# 2. Lấy biến môi trường
+# 2. Lấy biến môi trường & Credentials
 # ==========================================
-aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID")
-aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+print("[DEBUG] Environment Variables Keys:", list(os.environ.keys()))
+
+def get_credentials():
+    # 1. Try Environment Variables
+    ak = os.environ.get("AWS_ACCESS_KEY_ID")
+    sk = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    if ak and sk:
+        return ak, sk, "Environment Variables"
+
+    # 2. Try Volume Mount (Secrets)
+    try:
+        with open("/etc/secrets/aws-credentials/access_key_id", "r") as f:
+            ak = f.read().strip()
+        with open("/etc/secrets/aws-credentials/secret_access_key", "r") as f:
+            sk = f.read().strip()
+        if ak and sk:
+            return ak, sk, "Volume Mount"
+    except Exception as e:
+        print(f"[DEBUG] Failed to read from volume: {e}")
+
+    return None, None, None
+
+aws_access_key, aws_secret_key, source = get_credentials()
 
 if aws_access_key and aws_secret_key:
     # Set in Runtime Config (for tasks/executors if they pick it up via SQLConf)
@@ -34,11 +55,11 @@ if aws_access_key and aws_secret_key:
         sc._jsc.hadoopConfiguration().set("fs.s3a.access.key", aws_access_key)
         sc._jsc.hadoopConfiguration().set("fs.s3a.secret.key", aws_secret_key)
         sc._jsc.hadoopConfiguration().set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
-        print("[INFO] AWS Credentials loaded from environment variables and set in Hadoop Config")
+        print(f"[INFO] AWS Credentials loaded from {source} and set in Hadoop Config")
     except Exception as e:
         print(f"[WARN] Failed to set Hadoop config on Driver directly: {e}")
 else:
-    print("[WARN] AWS Credentials not found in environment variables! S3A may fail.")
+    print("[WARN] AWS Credentials NOT FOUND! S3A will likely fail.")
 kafka_bootstrap = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka.traffic.svc.cluster.local:9092")
 kafka_topic = os.environ.get("KAFKA_TOPIC", "traffic")
 kafka_group_id = os.environ.get("KAFKA_GROUP_ID", "spark-s3-glacier-group")
