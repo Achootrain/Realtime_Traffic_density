@@ -7,6 +7,7 @@ echo "===== CLEANING SPARK JOBS ====="
 kubectl delete -f $K8S_DIR/spark-batch-app.yaml -n $NAMESPACE --ignore-not-found
 kubectl delete -f $K8S_DIR/spark-realtime-app.yaml -n $NAMESPACE --ignore-not-found
 kubectl delete -f $K8S_DIR/spark-hdfs-reader.yaml -n $NAMESPACE --ignore-not-found
+kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found
 
 echo "===== CLEANING HDFS ====="
 kubectl delete -f $K8S_DIR/hdfs-cluster.yaml --ignore-not-found
