@@ -10,7 +10,7 @@ spec:
   image: ghcr.io/achootrain/spark-application:latest
   imagePullPolicy: Always 
   imagePullSecrets:
-    - name: ghcr-secret
+    - ghcr-secret
   mainApplicationFile: local:///app/s3_glacier.py
   sparkVersion: 3.5.1
   sparkConf:
