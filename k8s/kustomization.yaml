@@ -7,6 +7,7 @@ resources:
   - grafana.yaml
   - spark-operator-complete-rbac.yaml
   - spark-realtime-app.yaml
+  - spark-s3-glacier-app.yaml
   - producer-deployment.yaml
 
 images:
@@ -14,7 +15,7 @@ images:
     newName: docker.io/achootrain/kafka-producer
     newTag: latest
   - name: spark-application:dev2
-    newName: docker.io/achootrain/spark-application
+    newName: ghcr.io/achootrain/spark-application
     newTag: latest
 
 commonLabels:

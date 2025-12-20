@@ -78,13 +78,15 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           REPO_OWNER: ${{ env.REPO_OWNER }}
-          EC2_HOST: ${{ secrets.EC2_HOST }} # IP Mới nhất
+          EC2_HOST: ${{ secrets.EC2_HOST }}
           SERVICE_NAME: ${{ steps.target.outputs.service }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: REPO_OWNER,EC2_HOST,SERVICE_NAME
+          envs: REPO_OWNER,EC2_HOST,SERVICE_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |
             set -e
             
@@ -119,6 +121,14 @@ jobs:
 
             # Tạo namespace nếu chưa có
             kubectl create namespace traffic --dry-run=client -o yaml | kubectl apply -f -
+            
+            # D. TẠO AWS CREDENTIALS SECRET TỪ GITHUB SECRETS
+            echo "Creating AWS credentials secret..."
+            kubectl create secret generic aws-credentials \
+              --namespace traffic \
+              --from-literal=access_key_id="$AWS_ACCESS_KEY_ID" \
+              --from-literal=secret_access_key="$AWS_SECRET_ACCESS_KEY" \
+              --dry-run=client -o yaml | kubectl apply -f -
             
             # Cài đặt/Upgrade Spark Operator
             helm upgrade --install spark-operator-1 spark-operator/spark-operator \
