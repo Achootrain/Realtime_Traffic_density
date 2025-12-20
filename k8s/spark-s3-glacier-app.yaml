@@ -27,6 +27,10 @@ spec:
     serviceAccount: default
     labels:
       version: "3.5.1"
+    secrets:
+      - name: aws-credentials
+        path: /etc/secrets/aws-credentials
+        secretType: Generic
     env:
       - name: HOME
         value: "/tmp"
@@ -38,17 +42,6 @@ spec:
         value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-s3-glacier-group"
-      # AWS Credentials - from Kubernetes Secret
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef:
-            name: aws-credentials
-            key: access_key_id
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: aws-credentials
-            key: secret_access_key
       - name: AWS_REGION
         value: "us-east-1"
       - name: S3_BUCKET
@@ -72,6 +65,10 @@ spec:
     memory: 512m
     labels:
       version: "3.5.1"
+    secrets:
+      - name: aws-credentials
+        path: /etc/secrets/aws-credentials
+        secretType: Generic
     env:
       - name: HOME
         value: "/tmp"
@@ -83,16 +80,6 @@ spec:
         value: "hugedata"
       - name: KAFKA_GROUP_ID
         value: "spark-s3-glacier-group"
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef:
-            name: aws-credentials
-            key: access_key_id
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: aws-credentials
-            key: secret_access_key
       - name: AWS_REGION
         value: "us-east-1"
       - name: S3_BUCKET
