@@ -13,6 +13,8 @@ spec:
       labels:
         app: kafka-producer
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: producer
         image: ghcr.io/achootrain/kafka-producer:latest
