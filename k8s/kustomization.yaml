@@ -9,7 +9,7 @@ resources:
 
 images:
   - name: kafka-producer:dev
-    newName: docker.io/achootrain/kafka-producer
+    newName: ghcr.io/achootrain/kafka-producer
     newTag: latest
   - name: spark-application:dev2
     newName: ghcr.io/achootrain/spark-application
