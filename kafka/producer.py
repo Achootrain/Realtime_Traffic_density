@@ -14,6 +14,7 @@ import orjson
 from requests.adapters import HTTPAdapter, Retry
 import os
 import pytz
+import gc
 
 CAMERA_JSON_FILE = "cameras.json" 
 BASE_URL = "https://giaothong.hochiminhcity.gov.vn/render/ImageHandler.ashx?id="
@@ -76,6 +77,8 @@ def create_session():
     return session
 
 session = create_session()
+# Global executor to avoid churn
+executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 def parse_location(loc_str):
     if not loc_str:
@@ -131,62 +134,67 @@ def process_camera(cam):
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     try:
-        response = session.get(url, headers=headers, stream=True, timeout=10)
-        response.raise_for_status()
-        if 'image/jpeg' not in response.headers.get('Content-Type', ''):
-            raise ValueError("Invalid content type")
+        # Use context manager to ensure connection is released
+        with session.get(url, headers=headers, stream=True, timeout=10) as response:
+            response.raise_for_status()
+            if 'image/jpeg' not in response.headers.get('Content-Type', ''):
+                raise ValueError("Invalid content type")
 
-        img_array = np.asarray(bytearray(response.raw.read()), dtype=np.uint8)
-        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-        img = cv2.resize(img, (RESIZE_WIDTH, RESIZE_HEIGHT))
+            img_array = np.asarray(bytearray(response.raw.read()), dtype=np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            img = cv2.resize(img, (RESIZE_WIDTH, RESIZE_HEIGHT))
 
-        # Run prediction on CPU to avoid CUDA requirements in the container
-        results = model.predict(source=img, conf=YOLO_CONF, device='cpu', verbose=False)[0]
+            # Run prediction on CPU to avoid CUDA requirements in the container
+            results = model.predict(source=img, conf=YOLO_CONF, device='cpu', verbose=False, save=False)[0]
 
-        # Extract class indices from results.boxes.cls in a safe way (handles
-        # torch tensors or numpy arrays depending on runtime). If there are no
-        # boxes, results.boxes may be empty.
-        classes = []
-        if getattr(results, 'boxes', None) is not None and len(results.boxes) > 0:
-            try:
-                cls_data = results.boxes.cls
-                # If it's a torch tensor, move to cpu and convert to numpy
-                if hasattr(cls_data, 'cpu'):
-                    cls_array = cls_data.cpu().numpy()
-                else:
-                    cls_array = cls_data
-                classes = [int(x) for x in cls_array]
-            except Exception:
-                # Fallback: iterate and coerce to int
-                classes = [int(x) for x in results.boxes.cls]
+            # Extract class indices from results.boxes.cls in a safe way (handles
+            # torch tensors or numpy arrays depending on runtime). If there are no
+            # boxes, results.boxes may be empty.
+            classes = []
+            if getattr(results, 'boxes', None) is not None and len(results.boxes) > 0:
+                try:
+                    cls_data = results.boxes.cls
+                    # If it's a torch tensor, move to cpu and convert to numpy
+                    if hasattr(cls_data, 'cpu'):
+                        cls_array = cls_data.cpu().numpy()
+                    else:
+                        cls_array = cls_data
+                    classes = [int(x) for x in cls_array]
+                except Exception:
+                    # Fallback: iterate and coerce to int
+                    classes = [int(x) for x in results.boxes.cls]
 
-        vehicles = [model.names[c] for c in classes if model.names[c] in TARGET_CLASSES]
-        vehicle_counts = dict(Counter(vehicles))
+            vehicles = [model.names[c] for c in classes if model.names[c] in TARGET_CLASSES]
+            vehicle_counts = dict(Counter(vehicles))
 
-        car_count = vehicle_counts.get("car", 0)
-        truck_count = vehicle_counts.get("truck", 0)
-        bus_count = vehicle_counts.get("bus", 0)
-        motorcycle_count = vehicle_counts.get("motorcycle", 0)
+            car_count = vehicle_counts.get("car", 0)
+            truck_count = vehicle_counts.get("truck", 0)
+            bus_count = vehicle_counts.get("bus", 0)
+            motorcycle_count = vehicle_counts.get("motorcycle", 0)
 
-        vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
-        current_time_vn = datetime.datetime.now(vietnam_tz)
-        # data format
-        # time, camera_id, latitude, longitude, camera, car_count, truck_count, bus_count, motorcycle_count
-        data = {
-            "time": current_time_vn.strftime("%Y-%m-%d %H:%M:%S"),
-            "camera_id": cam_id,
-            "latitude": cam["latitude"],
-            "longitude": cam["longitude"],
-            "camera": cam["display_name"],
-            "car_count": car_count,
-            "bus_count": bus_count,
-            "truck_count": truck_count,
-            "motorcycle_count": motorcycle_count,
-            "total_count": car_count + bus_count + truck_count + motorcycle_count
-        }
+            vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            current_time_vn = datetime.datetime.now(vietnam_tz)
+            # data format
+            # time, camera_id, latitude, longitude, camera, car_count, truck_count, bus_count, motorcycle_count
+            data = {
+                "time": current_time_vn.strftime("%Y-%m-%d %H:%M:%S"),
+                "camera_id": cam_id,
+                "latitude": cam["latitude"],
+                "longitude": cam["longitude"],
+                "camera": cam["display_name"],
+                "car_count": car_count,
+                "bus_count": bus_count,
+                "truck_count": truck_count,
+                "motorcycle_count": motorcycle_count,
+                "total_count": car_count + bus_count + truck_count + motorcycle_count
+            }
 
-        producer.send('hugedata', value=data)
-        return f"[OK] {current_time_vn.strftime('%Y-%m-%d %H:%M:%S')} {cam_id}: {vehicle_counts}"
+            producer.send('hugedata', value=data)
+            
+            # Explicit cleanup
+            del img, img_array, results, classes, vehicles
+            
+            return f"[OK] {current_time_vn.strftime('%Y-%m-%d %H:%M:%S')} {cam_id}: {vehicle_counts}"
 
     except Exception as e:
         return f"[ERROR] {cam_id}: {e}"
@@ -203,12 +211,16 @@ def main():
             batch = CAMERAS_CACHE[i:i+BATCH_SIZE]
             print(f"\nProcessing batch {i//BATCH_SIZE + 1}: {len(batch)} cameras")
 
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = [executor.submit(process_camera, cam) for cam in batch]
-                for f in as_completed(futures):
-                    result = f.result()
-                    print(result)
-                    logging.info(result)
+            # Use global executor to submit tasks
+            futures = [executor.submit(process_camera, cam) for cam in batch]
+            for f in as_completed(futures):
+                result = f.result()
+                print(result)
+                logging.info(result)
+            
+            # Explicitly clear futures list and collect garbage
+            del futures
+            gc.collect()
 
             producer.flush()
             print(f"Batch {i//BATCH_SIZE + 1} done, waiting {BATCH_DELAY}s before next batch...")

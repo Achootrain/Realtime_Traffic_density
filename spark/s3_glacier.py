@@ -158,14 +158,6 @@ except Exception as e:
     print(f"[ERROR] Failed to start S3 stream: {e}")
     sys.exit(1)
 
-# Query debug console (ít log thôi)
-console_query = (
-    df_transformed.writeStream
-    .format("console")
-    .option("truncate", "false")
-    .option("numRows", "5")
-    .trigger(processingTime="300 seconds")
-    .start()
-)
+# Console query removed for production memory optimization
 
 spark.streams.awaitAnyTermination()

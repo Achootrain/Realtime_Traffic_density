@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: producer
-        image: kafka-producer:dev
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/achootrain/kafka-producer:latest
+        imagePullPolicy: Always
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: "kafka.traffic.svc.cluster.local:9092"
