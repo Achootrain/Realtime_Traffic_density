@@ -189,7 +189,7 @@ def process_camera(cam):
                 "total_count": car_count + bus_count + truck_count + motorcycle_count
             }
 
-            producer.send('hugedata', value=data)
+            producer.send('traffic', value=data)
             
             # Explicit cleanup
             del img, img_array, results, classes, vehicles
