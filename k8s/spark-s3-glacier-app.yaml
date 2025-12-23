@@ -25,6 +25,12 @@ spec:
     # Ensure env var is present even if the operator doesn't propagate spec.driver.env
     "spark.kubernetes.driverEnv.S3_BUCKET": "traffic-count-bigdata"
     "spark.kubernetes.executorEnv.S3_BUCKET": "traffic-count-bigdata"
+    # Memory Leak Optimizations
+    "spark.ui.retainedJobs": "100"
+    "spark.ui.retainedStages": "100"
+    "spark.ui.retainedTasks": "100"
+    "spark.cleaner.periodicGC.interval": "1min"
+    "spark.hadoop.fs.s3a.impl.disable.cache": "true"
   driver:
     coreRequest: "100m"
     coreLimit: "300m"
