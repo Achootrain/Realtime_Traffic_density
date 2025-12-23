@@ -8,6 +8,7 @@ resources:
   - producer-deployment.yaml
   - timescaledb.yaml
   - spark-realtime-app.yaml
+  - grafana.yaml
 
 
 images:
