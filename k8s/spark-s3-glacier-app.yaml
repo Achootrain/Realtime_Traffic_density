@@ -8,24 +8,33 @@ spec:
   pythonVersion: "3"
   mode: cluster
   image: ghcr.io/achootrain/spark-application:latest
-  imagePullPolicy: Always 
+  imagePullPolicy: Always
   imagePullSecrets:
     - ghcr-secret
   mainApplicationFile: local:///app/s3_glacier.py
-  sparkVersion: 3.5.1
+  sparkVersion: 3.4.0
   sparkConf:
     "spark.jars.ivy": "/tmp/.ivy2"
     "spark.jars": "local:///opt/spark/jars/hadoop-aws-3.3.4.jar,local:///opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar,local:///opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/kafka-clients-3.5.1.jar,local:///opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/commons-pool2-2.11.1.jar"
     "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
-    "spark.hadoop.fs.s3a.fast.upload.buffer": "array"
+    
+    # --- SỬA 1: Dùng disk để bảo vệ Heap 512MB ---
+    "spark.hadoop.fs.s3a.fast.upload.buffer": "disk"
+    # ---------------------------------------------
+    
     "spark.driver.memoryOverhead": "1024m"
     "spark.executor.memoryOverhead": "1024m"
     "spark.driver.extraJavaOptions": "-XX:+UseG1GC"
     "spark.executor.extraJavaOptions": "-XX:+UseG1GC"
-    # Ensure env var is present even if the operator doesn't propagate spec.driver.env
+    
+    # Cấu hình Jemalloc trong SparkConf (giữ nguyên để Spark biết)
+    "spark.driver.extraLibraryPath": "/usr/lib/x86_64-linux-gnu"
+    "spark.executor.extraLibraryPath": "/usr/lib/x86_64-linux-gnu"
+    "spark.kubernetes.driverEnv.LD_PRELOAD": "/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
+    "spark.kubernetes.executorEnv.LD_PRELOAD": "/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
+    
     "spark.kubernetes.driverEnv.S3_BUCKET": "traffic-count-bigdata"
     "spark.kubernetes.executorEnv.S3_BUCKET": "traffic-count-bigdata"
-    # Memory Leak Optimizations
     "spark.ui.retainedJobs": "100"
     "spark.ui.retainedStages": "100"
     "spark.ui.retainedTasks": "100"
@@ -43,6 +52,10 @@ spec:
         path: /etc/secrets/aws-credentials
         secretType: Generic
     env:
+      # --- SỬA 2: Khai báo cứng biến môi trường ở đây để đảm bảo load trước JVM ---
+      - name: LD_PRELOAD
+        value: "/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
+      # -------------------------------------------------------------------------
       - name: HOME
         value: "/tmp"
       - name: USER
@@ -81,6 +94,10 @@ spec:
         path: /etc/secrets/aws-credentials
         secretType: Generic
     env:
+      # --- SỬA 2: Executor cũng cần ---
+      - name: LD_PRELOAD
+        value: "/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
+      # ------------------------------
       - name: HOME
         value: "/tmp"
       - name: USER

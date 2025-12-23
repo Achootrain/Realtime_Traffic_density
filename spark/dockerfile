@@ -3,6 +3,10 @@ USER root
 
 WORKDIR /app
 
+RUN apt-get update \ 
+ && apt-get install -y --no-install-recommends libjemalloc2 \ 
+ && rm -rf /var/lib/apt/lists/*
+
 COPY *.py .
 
 COPY ./jars/*.jar /opt/spark/jars/
