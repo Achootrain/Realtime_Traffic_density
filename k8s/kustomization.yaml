@@ -6,6 +6,8 @@ resources:
   - spark-operator-complete-rbac.yaml
   - spark-s3-glacier-app.yaml
   - producer-deployment.yaml
+  - timescaledb.yaml
+  - spark-realtime-app.yaml
 
 
 images:
