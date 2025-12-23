@@ -95,8 +95,7 @@ df_timescale = df_valid.select(
     col("motorcycle_count"),
     col("bus_count"),
     col("truck_count"),
-    col("total_count"),
-    current_timestamp().alias("ingest_ts")
+    col("total_count")
 )
 
 
