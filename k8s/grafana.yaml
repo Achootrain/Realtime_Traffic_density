@@ -832,10 +832,10 @@ spec:
           mountPath: /var/lib/grafana/dashboards
         resources:
           requests:
-            memory: "256Mi"
+            memory: "128Mi"
             cpu: "250m"
           limits:
-            memory: "512Mi"
+            memory: "256Mi"
             cpu: "500m"
       volumes:
       - name: grafana-storage

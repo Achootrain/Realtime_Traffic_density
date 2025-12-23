@@ -20,8 +20,8 @@ spec:
     # ------------------------------------------
     "spark.hadoop.hadoop.security.authentication": "simple"
     "spark.hadoop.fs.viewfs.enable": "false"
-    "spark.driver.memoryOverhead": "1024m"
-    "spark.executor.memoryOverhead": "1024m"
+    "spark.driver.memoryOverhead": "256m"
+    "spark.executor.memoryOverhead": "256m"
     
     # Cấu hình Jemalloc chống OOM (Giữ nguyên)
     "spark.driver.extraLibraryPath": "/usr/lib/x86_64-linux-gnu"
