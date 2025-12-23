@@ -18,8 +18,8 @@ spec:
     "spark.jars": "local:///opt/spark/jars/hadoop-aws-3.3.4.jar,local:///opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar,local:///opt/spark/jars/spark-sql-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/kafka-clients-3.5.1.jar,local:///opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.5.1.jar,local:///opt/spark/jars/commons-pool2-2.11.1.jar"
     "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
     "spark.hadoop.fs.s3a.fast.upload.buffer": "array"
-    "spark.driver.memoryOverhead": "512m"
-    "spark.executor.memoryOverhead": "512m"
+    "spark.driver.memoryOverhead": "1024m"
+    "spark.executor.memoryOverhead": "1024m"
     "spark.driver.extraJavaOptions": "-XX:+UseG1GC"
     "spark.executor.extraJavaOptions": "-XX:+UseG1GC"
     # Ensure env var is present even if the operator doesn't propagate spec.driver.env
