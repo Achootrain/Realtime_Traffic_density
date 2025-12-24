@@ -176,7 +176,19 @@ except Exception as e:
     logger.error("Could not start console sink: %s", e)
 
 try:
-    spark.streams.awaitAnyTermination()
+    # Restart loop every 12 hours (43200 seconds)
+    timeout_seconds = 43200
+    logger.info(f"Application set to restart after {timeout_seconds} seconds")
+    
+    # Returns True if query terminated (error/finished), False if timeout
+    terminated = spark.streams.awaitAnyTermination(timeout=timeout_seconds)
+    
+    if not terminated:
+        logger.info("12h Timeout reached. Stopping streams for scheduled restart...")
+        for stream in spark.streams.active:
+            stream.stop()
+    else:
+        logger.warning("Stream terminated unexpectedly (Error or Finished). Exiting...")
 except KeyboardInterrupt:
     logger.info("Termination requested; stopping active streams...")
     for q in spark.streams.active:

@@ -7,6 +7,8 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
+  restartPolicy:
+    type: Always
   image: ghcr.io/achootrain/spark-application:latest
   imagePullPolicy: Always
   imagePullSecrets:
