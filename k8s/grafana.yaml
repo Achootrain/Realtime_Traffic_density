@@ -12,22 +12,21 @@ data:
         uid: timescaledb
         access: proxy
         url: timescaledb.traffic.svc.cluster.local:5432
-        database: traffic
+        database: traffic           # <--- ĐÃ CÓ DÒNG NÀY (QUAN TRỌNG NHẤT)
         user: postgres
+        isDefault: true
         secureJsonData:
           password: postgres
         jsonData:
           sslmode: disable
           postgresVersion: 1600
           timescaledb: true
-        isDefault: true
-      # Cấu hình Athena chuẩn chỉ
       - name: AWS Athena
         type: grafana-athena-datasource
         uid: athena
         access: proxy
         jsonData:
-          authType: default 
+          authType: default
           defaultRegion: us-east-1
           catalog: AwsDataCatalog
           database: traffic_analytics
@@ -59,8 +58,6 @@ metadata:
   name: grafana-dashboard-traffic
   namespace: traffic
 data:
-  # Dashboard JSON giữ nguyên (Lưu ý: Nó đang query TimescaleDB. 
-  # Muốn hiện Athena bạn cần vào Edit Panel sau khi deploy)
   traffic-dashboard.json: |
     {
       "annotations": { "list": [ { "builtIn": 1, "datasource": "-- Grafana --", "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" } ] },
@@ -196,10 +193,8 @@ spec:
           value: "admin"
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
-        # Cài plugin Athena
         - name: GF_INSTALL_PLUGINS
           value: "grafana-athena-datasource"
-        # Inject AWS Key từ Secret (Bảo mật)
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:
