@@ -12,7 +12,7 @@ data:
         uid: timescaledb
         access: proxy
         url: timescaledb.traffic.svc.cluster.local:5432
-        database: traffic           # <--- ĐÃ CÓ DÒNG NÀY (QUAN TRỌNG NHẤT)
+        database: traffic           
         user: postgres
         isDefault: true
         secureJsonData:
@@ -21,6 +21,7 @@ data:
           sslmode: disable
           postgresVersion: 1600
           timescaledb: true
+          database: traffic         
       - name: AWS Athena
         type: grafana-athena-datasource
         uid: athena
