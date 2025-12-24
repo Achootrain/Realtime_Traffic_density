@@ -21,7 +21,18 @@ data:
           postgresVersion: 1600
           timescaledb: true
         isDefault: true
-        editable: true
+      # Cấu hình Athena chuẩn chỉ
+      - name: AWS Athena
+        type: grafana-athena-datasource
+        uid: athena
+        access: proxy
+        jsonData:
+          authType: default 
+          defaultRegion: us-east-1
+          catalog: AwsDataCatalog
+          database: traffic_analytics
+          workgroup: primary
+          outputLocation: s3://traffic-count-bigdata/athena_results/
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -48,24 +59,11 @@ metadata:
   name: grafana-dashboard-traffic
   namespace: traffic
 data:
+  # Dashboard JSON giữ nguyên (Lưu ý: Nó đang query TimescaleDB. 
+  # Muốn hiện Athena bạn cần vào Edit Panel sau khi deploy)
   traffic-dashboard.json: |
     {
-      "annotations": {
-        "list": [
-          {
-            "builtIn": 1,
-            "datasource": {
-              "type": "grafana",
-              "uid": "-- Grafana --"
-            },
-            "enable": true,
-            "hide": true,
-            "iconColor": "rgba(0, 211, 255, 1)",
-            "name": "Annotations & Alerts",
-            "type": "dashboard"
-          }
-        ]
-      },
+      "annotations": { "list": [ { "builtIn": 1, "datasource": "-- Grafana --", "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" } ] },
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
@@ -73,703 +71,87 @@ data:
       "links": [],
       "panels": [
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "tooltip": false, "viz": false, "legend": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
           "id": 1,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "time_series",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  time AS \"time\",\n  SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY time\nORDER BY time",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT\n  time AS \"time\",\n  SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY time\nORDER BY time", "refId": "A" } ],
           "title": "Total Vehicle Count Over Time",
           "type": "timeseries"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "normal"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "tooltip": false, "viz": false, "legend": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "normal" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
           "id": 2,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "time_series",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  time AS \"time\",\n  SUM(car_count) AS \"Cars\",\n  SUM(motorcycle_count) AS \"Motorcycles\",\n  SUM(bus_count) AS \"Buses\",\n  SUM(truck_count) AS \"Trucks\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY time\nORDER BY time",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT\n  time AS \"time\",\n  SUM(car_count) AS \"Cars\",\n  SUM(motorcycle_count) AS \"Motorcycles\",\n  SUM(bus_count) AS \"Buses\",\n  SUM(truck_count) AS \"Trucks\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY time\nORDER BY time", "refId": "A" } ],
           "title": "Vehicle Types Distribution",
           "type": "timeseries"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 8
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 80 } ] } }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
           "id": 3,
-          "options": {
-            "displayMode": "gradient",
-            "minVizHeight": 10,
-            "minVizWidth": 0,
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showUnfilled": true
-          },
+          "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "orientation": "horizontal", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "showUnfilled": true },
           "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  camera_name,\n  SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY camera_name\nORDER BY SUM(total_count) DESC\nLIMIT 10",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT\n  camera_name,\n  SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY camera_name\nORDER BY SUM(total_count) DESC\nLIMIT 10", "refId": "A" } ],
           "title": "Top 10 Busiest Cameras",
           "type": "bargauge"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "inspect": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 8
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
           "id": 4,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
+          "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": [ "sum" ], "show": false }, "showHeader": true },
           "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  camera_name,\n  time,\n  car_count,\n  motorcycle_count,\n  bus_count,\n  truck_count,\n  total_count\nFROM latest_traffic_metrics\nORDER BY total_count DESC\nLIMIT 20",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT\n  camera_name,\n  time,\n  car_count,\n  motorcycle_count,\n  bus_count,\n  truck_count,\n  total_count\nFROM traffic_metrics\nORDER BY total_count DESC\nLIMIT 20", "refId": "A" } ],
           "title": "Latest Traffic Metrics",
           "type": "table"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 0,
-            "y": 16
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
           "id": 5,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
           "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)", "refId": "A" } ],
           "title": "Total Vehicles Detected",
           "type": "stat"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 6,
-            "y": 16
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
           "id": 6,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
           "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT COUNT(DISTINCT camera_id) AS \"Active Cameras\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT COUNT(DISTINCT camera_id) AS \"Active Cameras\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)", "refId": "A" } ],
           "title": "Active Cameras",
           "type": "stat"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 12,
-            "y": 16
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
           "id": 7,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "mean" ], "fields": "", "values": false }, "textMode": "auto" },
           "pluginVersion": "10.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT AVG(total_count) AS \"Avg Vehicles per Camera\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT AVG(total_count) AS \"Avg Vehicles per Camera\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)", "refId": "A" } ],
           "title": "Avg Vehicles per Camera",
           "type": "stat"
         },
         {
-          "datasource": {
-            "type": "postgres",
-            "uid": "timescaledb"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 6,
-            "x": 18,
-            "y": 16
-          },
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "custom": { "hideFrom": { "tooltip": false, "viz": false, "legend": false } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
           "id": 8,
-          "options": {
-            "displayLabels": [
-              "percent"
-            ],
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "pieType": "pie",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "timescaledb"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT\n  'Cars' AS vehicle_type, SUM(car_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Motorcycles' AS vehicle_type, SUM(motorcycle_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Buses' AS vehicle_type, SUM(bus_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Trucks' AS vehicle_type, SUM(truck_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
+          "options": { "displayLabels": [ "percent" ], "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "pieType": "pie", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT\n  'Cars' AS vehicle_type, SUM(car_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Motorcycles' AS vehicle_type, SUM(motorcycle_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Buses' AS vehicle_type, SUM(bus_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nUNION ALL\nSELECT\n  'Trucks' AS vehicle_type, SUM(truck_count) AS count\nFROM traffic_metrics\nWHERE $__timeFilter(time)", "refId": "A" } ],
           "title": "Vehicle Type Distribution",
           "type": "piechart"
         }
@@ -778,13 +160,8 @@ data:
       "schemaVersion": 38,
       "style": "dark",
       "tags": ["traffic", "monitoring"],
-      "templating": {
-        "list": []
-      },
-      "time": {
-        "from": "now-6h",
-        "to": "now"
-      },
+      "templating": { "list": [] },
+      "time": { "from": "now-6h", "to": "now" },
       "timepicker": {},
       "timezone": "",
       "title": "Traffic Monitoring Dashboard",
@@ -819,8 +196,22 @@ spec:
           value: "admin"
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
+        # Cài plugin Athena
         - name: GF_INSTALL_PLUGINS
-          value: ""
+          value: "grafana-athena-datasource"
+        # Inject AWS Key từ Secret (Bảo mật)
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret_access_key
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
@@ -832,10 +223,10 @@ spec:
           mountPath: /var/lib/grafana/dashboards
         resources:
           requests:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "256Mi"
+            memory: "512Mi" 
             cpu: "500m"
       volumes:
       - name: grafana-storage

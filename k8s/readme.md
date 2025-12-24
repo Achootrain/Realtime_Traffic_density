@@ -82,6 +82,10 @@ kubectl exec -n traffic <timescaledb-pod> -- psql -U postgres -d traffic -c "SEL
 chmod +x /home/ubuntu/clean.sh
 /home/ubuntu/clean.sh
 
+kubectl delete sparkapplication spark-realtime-python -n traffic
+kubectl delete deployment grafana -n traffic
+kubectl delete statefulset timescaledb -n traffic
+
 
 ```
 
