@@ -89,3 +89,5 @@ kubectl delete statefulset timescaledb -n traffic
 
 ```
 
+kubectl port-forward -n traffic svc/grafana 3000:3000 --address 0.0.0.0
+ssh -L 3000:localhost:3000 -i ~/.ssh/Achootrain.pem ubuntu@54.87.110.172
