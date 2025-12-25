@@ -177,7 +177,7 @@ except Exception as e:
 
 try:
     # Restart loop every 12 hours (43200 seconds)
-    timeout_seconds = 43200
+    timeout_seconds = 60
     logger.info(f"Application set to restart after {timeout_seconds} seconds")
     
     # Returns True if query terminated (error/finished), False if timeout

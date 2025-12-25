@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, create_map, lit, to_timestamp, to_date
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
@@ -162,7 +163,7 @@ except Exception as e:
 
 # Restart loop every 12 hours (43200 seconds)
 # Spark will exit after timeout, and K8s RestartPolicy=Always will respawn it.
-timeout_seconds = 43200
+timeout_seconds = 60
 print(f"[INFO] Application set to restart after {timeout_seconds} seconds")
 
 # Returns True if query terminated (error/finished), False if timeout
@@ -170,7 +171,7 @@ terminated = spark.streams.awaitAnyTermination(timeout=timeout_seconds)
 
 if not terminated:
     print("[INFO] Reached timeout. Stopping stream gracefully...")
-    query.stop()
+    s3_query.stop()
     # Đợi một chút cho các thread đóng hẳn
     time.sleep(5)
     spark.stop()
