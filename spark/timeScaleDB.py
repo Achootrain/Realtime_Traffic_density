@@ -108,7 +108,12 @@ TIMESCALEDB_PASSWORD = os.environ.get("TIMESCALEDB_PASSWORD", "postgres")
 TIMESCALEDB_TABLE = os.environ.get("TIMESCALEDB_TABLE", "traffic_metrics")
 
 def write_to_timescaledb(batch_df, batch_id):
-    """Write each micro-batch to TimescaleDB with basic retries."""
+    """
+    Write batch to Staging Table -> Upsert to Main Table to handle duplicates.
+    Strategy:
+      1. Write batch to 'traffic_metrics_staging' (Overwrite/Truncate).
+      2. Execute SQL: INSERT INTO ... SELECT ... ON CONFLICT DO NOTHING.
+    """
     if batch_df is None:
         return
 
@@ -116,33 +121,59 @@ def write_to_timescaledb(batch_df, batch_id):
     batch_df_cached = batch_df.persist()
     row_count = batch_df_cached.count()
     if row_count == 0:
+        batch_df_cached.unpersist()
         return
 
+    staging_table = "traffic_metrics_staging"
     max_retries = int(os.environ.get("DB_WRITE_MAX_RETRIES", "3"))
     backoff_sec = float(os.environ.get("DB_WRITE_BACKOFF_SEC", "2"))
 
     last_err = None
     for attempt in range(1, max_retries + 1):
         try:
+            # 1. Write to Staging Table (Overwrite ensures we clear old batch data)
+            #    Spark will create/truncate this table automatically.
+            #    Use UNLOGGED for performance (no WAL logging for temp data).
             batch_df_cached.write \
                 .format("jdbc") \
                 .option("url", TIMESCALEDB_URL) \
-                .option("dbtable", TIMESCALEDB_TABLE) \
+                .option("dbtable", staging_table) \
                 .option("user", TIMESCALEDB_USER) \
                 .option("password", TIMESCALEDB_PASSWORD) \
                 .option("driver", "org.postgresql.Driver") \
-                .mode("append") \
+                .option("createTableOptions", "UNLOGGED") \
+                .mode("overwrite") \
+                .option("truncate", "true") \
                 .save()
-            logger.info(f"Batch %s: wrote %s rows to TimescaleDB (attempt %s)", batch_id, row_count, attempt)
+            
+            # 2. Execute SQL Merge (Upsert)
+            #    Use standard JDBC driver via Spark's JVM gateway
+            driver_manager = spark._jvm.java.sql.DriverManager
+            conn = driver_manager.getConnection(TIMESCALEDB_URL, TIMESCALEDB_USER, TIMESCALEDB_PASSWORD)
+            try:
+                stmt = conn.createStatement()
+                # Assuming unique constraint is on (time, camera_id) as per error logs
+                sql_merge = f"""
+                    INSERT INTO {TIMESCALEDB_TABLE}
+                    SELECT * FROM {staging_table}
+                    ON CONFLICT (time, camera_id) DO NOTHING
+                """
+                stmt.execute(sql_merge)
+                logger.info(f"Batch {batch_id}: synced {row_count} rows via staging table (attempt {attempt})")
+            finally:
+                conn.close()
+
             last_err = None
             break
         except Exception as e:
             last_err = e
-            logger.error(f"Batch %s: write failed (attempt %s/%s): %s", batch_id, attempt, max_retries, e)
+            logger.error(f"Batch {batch_id}: write failed (attempt {attempt}/{max_retries}): {e}")
             time.sleep(backoff_sec)
 
     if last_err is not None:
-        logger.critical(f"Batch %s: failed to write after %s attempts: %s", batch_id, max_retries, last_err)
+        logger.critical(f"Batch {batch_id}: failed to sync after {max_retries} attempts: {last_err}")
+    
+    batch_df_cached.unpersist()
 
 # Start TimescaleDB sink
 try:
