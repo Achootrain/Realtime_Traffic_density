@@ -141,7 +141,6 @@ def write_to_timescaledb(batch_df, batch_id):
                 .option("user", TIMESCALEDB_USER) \
                 .option("password", TIMESCALEDB_PASSWORD) \
                 .option("driver", "org.postgresql.Driver") \
-                .option("createTableOptions", "UNLOGGED") \
                 .mode("overwrite") \
                 .option("truncate", "true") \
                 .save()
