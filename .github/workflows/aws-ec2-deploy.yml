@@ -164,17 +164,25 @@ jobs:
               echo "TimescaleDB initialized"
             fi
             
-            # F. FORCE UPDATE (Bắt buộc để code mới chạy)
             echo "Restarting deployments to pick up new image..."
             if [ "$SERVICE_NAME" == "kafka" ]; then
                # Restart Kafka StatefulSet
                kubectl rollout restart statefulset/kafka -n traffic || true
+               # Restart Producer (Deployment)
+               kubectl rollout restart deployment/kafka-producer -n traffic || true
             elif [ "$SERVICE_NAME" == "spark" ]; then
                # Delete và tạo lại SparkApplication để operator deploy lại
+               # 1. Realtime App
                kubectl delete sparkapplication spark-realtime-python -n traffic --ignore-not-found
+               # 2. S3 Glacier App
+               kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found
+               
                sleep 5
+               
+               # Re-apply only Spark apps explicitly to ensure they start (kustomize apply might have been deleted)
                kubectl apply -f spark-realtime-app.yaml -n traffic
-               echo "Spark application restarted"
+               kubectl apply -f spark-s3-glacier-app.yaml -n traffic
+               echo "Spark applications restarted"
             fi
             
             echo "Done."

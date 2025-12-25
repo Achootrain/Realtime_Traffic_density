@@ -49,8 +49,8 @@ SELECT add_continuous_aggregate_policy('traffic_metrics_hourly',
     schedule_interval => INTERVAL '1 hour',
     if_not_exists => TRUE);
 
--- Create retention policy (keep data for 30 days)
-SELECT add_retention_policy('traffic_metrics', INTERVAL '30 days', if_not_exists => TRUE);
+-- Create retention policy (keep data for 1 days)
+SELECT add_retention_policy('traffic_metrics', INTERVAL '1 day', if_not_exists => TRUE);
 
 -- Create view for latest metrics per camera
 CREATE OR REPLACE VIEW latest_traffic_metrics AS

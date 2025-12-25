@@ -206,11 +206,9 @@ except Exception as e:
     logger.error("Could not start console sink: %s", e)
 
 try:
-    # Restart loop every 12 hours (43200 seconds)
-    timeout_seconds = 60
+    timeout_seconds = 43200
     logger.info(f"Application set to restart after {timeout_seconds} seconds")
     
-    # Returns True if query terminated (error/finished), False if timeout
     terminated = spark.streams.awaitAnyTermination(timeout=timeout_seconds)
     
     if not terminated:

@@ -163,7 +163,7 @@ except Exception as e:
 
 # Restart loop every 12 hours (43200 seconds)
 # Spark will exit after timeout, and K8s RestartPolicy=Always will respawn it.
-timeout_seconds = 60
+timeout_seconds = 43200
 print(f"[INFO] Application set to restart after {timeout_seconds} seconds")
 
 # Returns True if query terminated (error/finished), False if timeout
