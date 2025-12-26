@@ -112,8 +112,8 @@ data:
         },
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
-          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 100 } ] } }, "overrides": [] },
-          "gridPos": { "h": 12, "w": 12, "x": 12, "y": 20 },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 50 } ] } }, "overrides": [] },
+          "gridPos": { "h": 14, "w": 24, "x": 0, "y": 20 },
           "id": 9,
           "options": { "basemap": { "config": {}, "name": "Layer 0", "type": "default" }, "controls": { "mouseWheelZoom": true, "showAttribution": true, "showDebug": false, "showMeasure": false, "showScale": false, "showZoom": true }, "layers": [ { "config": { "showLocation": true, "size": { "field": "value", "fixed": 5, "max": 20, "min": 2 }, "style": { "color": { "field": "value", "fixed": "dark-green" }, "opacity": 0.4, "rotation": { "fixed": 0 }, "symbol": { "fixed": "img/icons/marker/marker.png", "mode": "fixed" }, "text": { "field": "camera_id", "fixed": "", "mode": "fixed" }, "textConfig": { "fontSize": 12, "offsetX": 0, "offsetY": 0, "textAlign": "center", "textBaseline": "middle" } }, "tooltip": { "mode": "details" }, "type": "markers" }, "location": { "lookup": "json", "mode": "coords", "point": "lat", "latitude": "lat", "longitude": "lon" }, "name": "Layer 1", "type": "markers" } ], "tooltip": { "mode": "details" }, "view": { "id": "zero", "lat": 0, "lon": 0, "zoom": 1 } },
           "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT camera_id, AVG(latitude) as lat, AVG(longitude) as lon, SUM(total_count) as value FROM traffic_metrics WHERE $__timeFilter(time) GROUP BY camera_id", "refId": "A" } ],
