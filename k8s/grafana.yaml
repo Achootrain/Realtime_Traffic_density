@@ -90,14 +90,47 @@ data:
         },
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
-          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 80 } ] } }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 80 } ] }, "unit": "percent" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
           "id": 3,
-          "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "orientation": "horizontal", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "showUnfilled": true },
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
           "pluginVersion": "10.2.0",
-          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT\n  camera_name,\n  SUM(total_count) AS \"Total Vehicles\"\nFROM traffic_metrics\nWHERE $__timeFilter(time)\nGROUP BY camera_name\nORDER BY SUM(total_count) DESC\nLIMIT 10", "refId": "A" } ],
-          "title": "Top 10 Busiest Cameras",
-          "type": "bargauge"
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT (SUM(motorcycle_count)::float / NULLIF(SUM(total_count), 0) * 100) AS \"Motorcycle Ratio\" FROM traffic_metrics WHERE $__timeFilter(time)", "refId": "A" } ],
+          "title": "Motorcycle Ratio %",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 80 } ] }, "unit": "percent" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "id": 10,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
+          "pluginVersion": "10.2.0",
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT (SUM(car_count)::float / NULLIF(SUM(total_count), 0) * 100) AS \"Car Ratio\" FROM traffic_metrics WHERE $__timeFilter(time)", "refId": "A" } ],
+          "title": "Car Ratio %",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 4 },
+          "id": 11,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
+          "pluginVersion": "10.2.0",
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT COUNT(DISTINCT camera_id) AS \"Active Cameras\" FROM traffic_metrics WHERE $__timeFilter(time)", "refId": "A" } ],
+          "title": "Active Cameras",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb" },
+          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] }, "unit": "short" }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 4 },
+          "id": 12,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }, "textMode": "auto" },
+          "pluginVersion": "10.2.0",
+          "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT AVG(total_count) AS \"Avg per Interval\" FROM traffic_metrics WHERE $__timeFilter(time)", "refId": "A" } ],
+          "title": "Avg Traffic/Interval",
+          "type": "stat"
         },
         {
           "datasource": { "type": "postgres", "uid": "timescaledb" },
@@ -115,7 +148,7 @@ data:
           "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 50 } ] } }, "overrides": [] },
           "gridPos": { "h": 14, "w": 24, "x": 0, "y": 20 },
           "id": 9,
-          "options": { "basemap": { "config": {}, "name": "Layer 0", "type": "default" }, "controls": { "mouseWheelZoom": true, "showAttribution": true, "showDebug": false, "showMeasure": false, "showScale": false, "showZoom": true }, "layers": [ { "config": { "showLocation": true, "size": { "field": "value", "fixed": 5, "max": 20, "min": 2 }, "style": { "color": { "field": "value", "fixed": "dark-green" }, "opacity": 0.4, "rotation": { "fixed": 0 }, "symbol": { "fixed": "img/icons/marker/marker.png", "mode": "fixed" }, "text": { "field": "camera_id", "fixed": "", "mode": "fixed" }, "textConfig": { "fontSize": 12, "offsetX": 0, "offsetY": 0, "textAlign": "center", "textBaseline": "middle" } }, "tooltip": { "mode": "details" }, "type": "markers" }, "location": { "lookup": "json", "mode": "coords", "point": "lat", "latitude": "lat", "longitude": "lon" }, "name": "Layer 1", "type": "markers" } ], "tooltip": { "mode": "details" }, "view": { "id": "zero", "lat": 0, "lon": 0, "zoom": 1 } },
+          "options": { "basemap": { "config": { "theme": "light" }, "name": "Layer 0", "type": "default" }, "controls": { "mouseWheelZoom": true, "showAttribution": true, "showDebug": false, "showMeasure": false, "showScale": false, "showZoom": true }, "layers": [ { "config": { "showLocation": true, "size": { "field": "value", "fixed": 5, "max": 20, "min": 2 }, "style": { "color": { "field": "value", "fixed": "dark-green" }, "opacity": 0.6, "rotation": { "fixed": 0 }, "symbol": { "fixed": "img/icons/marker/marker.png", "mode": "fixed" }, "text": { "field": "camera_id", "fixed": "", "mode": "fixed" }, "textConfig": { "fontSize": 12, "offsetX": 0, "offsetY": 0, "textAlign": "center", "textBaseline": "middle" } }, "tooltip": { "mode": "details" }, "type": "markers" }, "location": { "lookup": "json", "mode": "coords", "point": "lat", "latitude": "lat", "longitude": "lon" }, "name": "Layer 1", "type": "markers" } ], "tooltip": { "mode": "details" }, "view": { "id": "coords", "lat": 10.7756, "lon": 106.7019, "zoom": 14 } },
           "targets": [ { "datasource": { "type": "postgres", "uid": "timescaledb" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT camera_id, AVG(latitude) as lat, AVG(longitude) as lon, SUM(total_count) as value FROM traffic_metrics WHERE $__timeFilter(time) GROUP BY camera_id", "refId": "A" } ],
           "title": "Realtime Traffic Density (Geomap)",
           "type": "geomap"
@@ -356,6 +389,28 @@ data:
           ],
           "title": "Average Peak Hours (Last 7 Days)",
           "type": "barchart"
+        },
+        {
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [] }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+          "id": 3,
+          "options": { "legend": { "displayMode": "list", "placement": "right", "showLegend": true }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+          "pluginVersion": "10.2.0",
+          "targets": [ { "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSql": "SELECT 'Cars' AS vehicle_type, SUM(car_count) AS count FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Motorcycles', SUM(motorcycle_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Buses', SUM(bus_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Trucks', SUM(truck_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())", "refId": "A" } ],
+          "title": "Vehicle Type Distribution (7 Days)",
+          "type": "piechart"
+        },
+        {
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "id": 4,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": true, "textMode": "auto", "wideLayout": true },
+          "pluginVersion": "10.2.0",
+          "targets": [ { "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSql": "SELECT SUM(total_count) AS \"This Week\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())", "refId": "A" } ],
+          "title": "Total Traffic This Week",
+          "type": "stat"
         }
       ],
       "preload": false,
