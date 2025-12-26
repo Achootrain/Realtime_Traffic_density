@@ -391,24 +391,72 @@ data:
           "type": "barchart"
         },
         {
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
-          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [] }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
-          "id": 3,
-          "options": { "legend": { "displayMode": "list", "placement": "right", "showLegend": true }, "pieType": "pie", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
-          "pluginVersion": "10.2.0",
-          "targets": [ { "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSql": "SELECT 'Cars' AS vehicle_type, SUM(car_count) AS count FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Motorcycles', SUM(motorcycle_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Buses', SUM(bus_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) UNION ALL SELECT 'Trucks', SUM(truck_count) FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())", "refId": "A" } ],
-          "title": "Vehicle Type Distribution (7 Days)",
-          "type": "piechart"
-        },
-        {
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
-          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 20
+          },
           "id": 4,
-          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": true, "textMode": "auto", "wideLayout": true },
-          "pluginVersion": "10.2.0",
-          "targets": [ { "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSql": "SELECT SUM(total_count) AS \"This Week\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())", "refId": "A" } ],
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": true,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.1",
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "__default",
+                "database": "__default",
+                "region": "__default",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  SUM(total_count) AS \"Total Traffic This Week\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now())",
+              "rawSql": "SELECT SUM(total_count) AS \"This Week\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())",
+              "refId": "A"
+            }
+          ],
           "title": "Total Traffic This Week",
           "type": "stat"
         }

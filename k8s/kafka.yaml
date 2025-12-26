@@ -60,6 +60,15 @@ spec:
           value: "true"
         - name: KAFKA_LOG_DIRS
           value: "/var/lib/kafka/data"
+        # Log retention settings to prevent PVC from filling up
+        - name: KAFKA_LOG_RETENTION_HOURS
+          value: "24"
+        - name: KAFKA_LOG_RETENTION_BYTES
+          value: "4294967296"
+        - name: KAFKA_LOG_SEGMENT_BYTES
+          value: "1073741824"
+        - name: KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS
+          value: "300000"
         resources:
           requests:
             memory: "512Mi"
