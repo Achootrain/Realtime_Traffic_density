@@ -62,6 +62,8 @@ spec:
         value: "postgres"
       - name: TIMESCALEDB_TABLE
         value: "traffic_metrics"
+      - name: CHECKPOINT_BASE
+        value: "/app/data/checkpoint_v2"
     securityContext:
       runAsUser: 185
       runAsGroup: 185
@@ -103,6 +105,8 @@ spec:
         value: "postgres"
       - name: TIMESCALEDB_TABLE
         value: "traffic_metrics"
+      - name: CHECKPOINT_BASE
+        value: "/app/data/checkpoint_v2"
     securityContext:
       runAsUser: 185
       runAsGroup: 185
