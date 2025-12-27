@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import logging
 from pyspark.sql import SparkSession
@@ -206,7 +207,7 @@ except Exception as e:
     logger.error("Could not start console sink: %s", e)
 
 try:
-    timeout_seconds = 43200
+    timeout_seconds = 300
     logger.info(f"Application set to restart after {timeout_seconds} seconds")
     
     terminated = spark.streams.awaitAnyTermination(timeout=timeout_seconds)
@@ -215,8 +216,11 @@ try:
         logger.info("12h Timeout reached. Stopping streams for scheduled restart...")
         for stream in spark.streams.active:
             stream.stop()
+        # Force exit with code 1 to trigger Spark Operator restart policty (restartPolicy: Always)
+        sys.exit(1)
     else:
         logger.warning("Stream terminated unexpectedly (Error or Finished). Exiting...")
+        sys.exit(1)
 except KeyboardInterrupt:
     logger.info("Termination requested; stopping active streams...")
     for q in spark.streams.active:
