@@ -161,22 +161,17 @@ except Exception as e:
 
 # Console query removed for production memory optimization
 
-# Restart loop every 12 hours (43200 seconds)
-# Spark will exit after timeout, and K8s RestartPolicy=Always will respawn it.
-timeout_seconds = 300
-print(f"[INFO] Application set to restart after {timeout_seconds} seconds")
-
-# Returns True if query terminated (error/finished), False if timeout
-terminated = spark.streams.awaitAnyTermination(timeout=timeout_seconds)
-
-if not terminated:
-    print("[INFO] Reached timeout. Stopping stream gracefully...")
-    s3_query.stop()
-    # Đợi một chút cho các thread đóng hẳn
+try:
+    spark.streams.awaitAnyTermination()
+except KeyboardInterrupt:
+    print("[INFO] Termination requested; stopping active streams...")
+    try:
+        s3_query.stop()
+    except Exception as e:
+        print(f"[WARN] Failed to stop query: {e}")
     time.sleep(5)
-    spark.stop()
-    print("[INFO] Spark Session stopped. Exiting process.")
-    sys.exit(1) # Thoát code 0 để K8s biết là tắt chủ động
-else:
-    print("[ERROR] Stream crashed or stopped unexpectedly!")
-    sys.exit(1) # Thoát code 1 để K8s báo lỗi
+    try:
+        spark.stop()
+    except Exception as e:
+        print(f"[WARN] Failed to stop Spark session: {e}")
+    print("[INFO] Shutdown complete")
