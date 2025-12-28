@@ -296,12 +296,12 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT\r\n  timestamp AS time,\r\n  total_count\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= from_iso8601_timestamp('${__from:date:iso}') -- Lọc theo thời gian chọn trên Grafana\r\nORDER BY timestamp ASC\r\nLIMIT 1000",
-              "rawSql": "SELECT date_trunc('day', timestamp) AS time, SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) GROUP BY 1 ORDER BY 1",
+              "rawSQL": "SELECT\r\n  date_trunc('hour', timestamp) AS time,\r\n  SUM(total_count) as \"Total Vehicles\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})\r\nGROUP BY 1\r\nORDER BY 1",
+              "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera}) GROUP BY 1 ORDER BY 1",
               "refId": "A"
             }
           ],
-          "title": "Daily Traffic Volume (Last 7 Days)",
+          "title": "Hourly Traffic Volume (Last 7 Days)",
           "type": "timeseries"
         },
         {
@@ -395,8 +395,8 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT\r\n  -- 1. Lấy giờ ra và định dạng thành chuỗi (để Grafana hiểu là nhãn trục X)\r\n  format('%02d:00', hour(timestamp)) AS \"Hour of Day\",\r\n  \r\n  -- 2. Tính trung bình lượng xe\r\n  AVG(total_count) AS \"Average Traffic\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\n\r\n-- 3. Lọc dữ liệu 7 ngày gần nhất\r\nWHERE timestamp >= date_add('day', -7, now())\r\n\r\n-- 4. Gom nhóm theo giờ (cột 1)\r\nGROUP BY 1\r\n\r\n-- 5. Sắp xếp từ 00:00 đến 23:00\r\nORDER BY 1 ASC",
-              "rawSql": "SELECT CAST(hour(timestamp) AS varchar) AS \"Hour of Day\", AVG(total_count) AS \"Avg Traffic\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) GROUP BY 1 ORDER BY 1 ASC",
+              "rawSQL": "SELECT\r\n  -- 1. Lấy giờ ra và định dạng thành chuỗi (để Grafana hiểu là nhãn trục X)\r\n  format('%02d:00', hour(timestamp)) AS \"Hour of Day\",\r\n  \r\n  -- 2. Tính trung bình lượng xe\r\n  AVG(total_count) AS \"Average Traffic\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\n\r\n-- 3. Lọc dữ liệu 7 ngày gần nhất\r\nWHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})\r\n\r\n-- 4. Gom nhóm theo giờ (cột 1)\r\nGROUP BY 1\r\n\r\n-- 5. Sắp xếp từ 00:00 đến 23:00\r\nORDER BY 1 ASC",
+              "rawSql": "SELECT CAST(hour(timestamp) AS varchar) AS \"Hour of Day\", AVG(total_count) AS \"Avg Traffic\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera}) GROUP BY 1 ORDER BY 1 ASC",
               "refId": "A"
             }
           ],
@@ -465,8 +465,8 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT \r\n  SUM(total_count) AS \"Total Traffic This Week\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now())",
-              "rawSql": "SELECT SUM(total_count) AS \"This Week\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now())",
+              "rawSQL": "SELECT \r\n  SUM(total_count) AS \"Total Traffic This Week\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})",
+              "rawSql": "SELECT SUM(total_count) AS \"This Week\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})",
               "refId": "A"
             }
           ],
@@ -551,13 +551,35 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT\r\n  date_trunc('hour', timestamp) AS time,\r\n  CAST(hour(timestamp) AS varchar) AS \"Hour\",\r\n  SUM(total_count) AS \"Traffic\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now())\r\nGROUP BY 1, 2\r\nORDER BY 1 ASC",
-              "rawSql": "SELECT date_trunc('hour', timestamp) AS time, CAST(hour(timestamp) AS varchar) AS \"Hour\", SUM(total_count) AS \"Traffic\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) GROUP BY 1, 2 ORDER BY 1 ASC",
+              "rawSQL": "SELECT\r\n  date_trunc('hour', timestamp) AS time,\r\n  CAST(hour(timestamp) AS varchar) AS \"Hour\",\r\n  SUM(total_count) AS \"Traffic\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})\r\nGROUP BY 1, 2\r\nORDER BY 1 ASC",
+              "rawSql": "SELECT date_trunc('hour', timestamp) AS time, CAST(hour(timestamp) AS varchar) AS \"Hour\", SUM(total_count) AS \"Traffic\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera}) GROUP BY 1, 2 ORDER BY 1 ASC",
               "refId": "A"
             }
           ],
           "title": "Traffic Heatmap (Last 7 Days)",
           "type": "heatmap"
+        },
+        {
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "normal" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 } ] } }, "overrides": [] },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 38 },
+          "id": 6,
+          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" } },
+          "pluginVersion": "12.3.1",
+          "targets": [ { "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default", "resultReuseEnabled": false, "resultReuseMaxAgeInMinutes": 60 }, "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSQL": "SELECT\r\n  date_trunc('hour', timestamp) AS time,\r\n  SUM(car_count) AS \"Cars\",\r\n  SUM(motorcycle_count) AS \"Motorcycles\",\r\n  SUM(bus_count) AS \"Buses\",\r\n  SUM(truck_count) AS \"Trucks\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera})\r\nGROUP BY 1\r\nORDER BY 1", "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(car_count) AS \"Cars\", SUM(motorcycle_count) AS \"Motorcycles\", SUM(bus_count) AS \"Buses\", SUM(truck_count) AS \"Trucks\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) AND camera_id IN (${camera}) GROUP BY 1 ORDER BY 1", "refId": "A" } ],
+          "title": "Vehicle Composition Trend (Last 7 Days)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 } ] } }, "overrides": [] },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 48 },
+          "id": 7,
+          "options": { "barRadius": 0, "barWidth": 0.97, "fullHighlight": false, "groupWidth": 0.7, "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "orientation": "horizontal", "showValue": "auto", "stacking": "none", "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }, "xTickLabelRotation": 0, "xTickLabelSpacing": 0 },
+          "pluginVersion": "12.3.1",
+          "targets": [ { "connectionArgs": { "catalog": "__default", "database": "__default", "region": "__default", "resultReuseEnabled": false, "resultReuseMaxAgeInMinutes": 60 }, "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, "rawSQL": "SELECT\r\n  camera_id,\r\n  SUM(total_count) AS \"Total Traffic\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= date_add('day', -7, now())\r\nGROUP BY 1\r\nORDER BY 2 DESC\r\nLIMIT 5", "rawSql": "SELECT camera_id, SUM(total_count) AS \"Total Traffic\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE timestamp >= date_add('day', -7, now()) GROUP BY 1 ORDER BY 2 DESC LIMIT 5", "refId": "A" } ],
+          "title": "Top 5 Busiest Cameras (Last 7 Days)",
+          "type": "barchart"
         }
       ],
       "preload": false,
@@ -568,7 +590,35 @@ data:
         "historical"
       ],
       "templating": {
-        "list": []
+        "list": [
+          {
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": {
+              "type": "grafana-athena-datasource",
+              "uid": "athena"
+            },
+            "definition": "SELECT DISTINCT camera_name AS text, camera_id AS value FROM \"traffic_analytics\".\"traffic_stream\" ORDER BY 1",
+            "hide": 0,
+            "includeAll": true,
+            "multi": true,
+            "name": "camera",
+            "options": [],
+            "query": "SELECT DISTINCT camera_name AS text, camera_id AS value FROM \"traffic_analytics\".\"traffic_stream\" ORDER BY 1",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
       },
       "time": {
         "from": "now-7d",

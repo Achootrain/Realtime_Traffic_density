@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS traffic_metrics (
     bus_count INTEGER DEFAULT 0,
     truck_count INTEGER DEFAULT 0,
     total_count INTEGER DEFAULT 0,
+    ingest_ts TIMESTAMP,
     PRIMARY KEY (time, camera_id)
 );
 
