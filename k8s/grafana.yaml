@@ -566,7 +566,6 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "format": 1,
               "rawSql": |
                 SELECT
                   date_trunc('hour', timestamp) AS time,
