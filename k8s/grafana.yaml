@@ -182,65 +182,622 @@ data:
     }
   traffic-history.json: |
     {
-      "annotations": { "list": [ { "builtIn": 1, "datasource": "-- Grafana --", "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" } ] },
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": null,
+      "id": 1,
       "links": [],
       "panels": [
         {
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
-          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "showValues": false, "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 } ] } }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-          "id": 1,
-          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" } },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-BlYlRd"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "id": 6,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.28,
+            "fullHighlight": false,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "orientation": "auto",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
           "pluginVersion": "12.3.1",
-          "targets": [ { "connectionArgs": { "region": "us-east-1", "catalog": "AwsDataCatalog", "database": "traffic_analytics" }, "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, 
-          
-          "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1", 
-          
-          "refId": "A" } ],
-          "title": "Total Vehicle Count (History)",
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "__default",
+                "database": "__default",
+                "region": "__default",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  CASE extract(dow from timestamp)\r\n    WHEN 1 THEN '1. Monday'\r\n    WHEN 2 THEN '2. Tuesday'\r\n    WHEN 3 THEN '3. Wednesday'\r\n    WHEN 4 THEN '4. Thursday'\r\n    WHEN 5 THEN '5. Friday'\r\n    WHEN 6 THEN '6. Saturday'\r\n    WHEN 0 THEN '7. Sunday'\r\n  END AS \"Day of Week\",\r\n  AVG(total_count) AS \"Average Traffic Volume\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day\r\nGROUP BY 1\r\nORDER BY 1 ASC",
+              "refId": "A"
+            }
+          ],
+          "title": "New panel",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-GrYlRd"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisGridShow": true,
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 61,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "scaleDistribution": {
+                  "log": 2,
+                  "type": "log"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "id": 5,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.39,
+            "fullHighlight": false,
+            "groupWidth": 0.53,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "orientation": "horizontal",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            },
+            "xField": "Morning Rush (6h-9h)",
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "12.3.1",
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "__default",
+                "database": "__default",
+                "region": "__default",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 6 AND 9 THEN total_count ELSE 0 END) AS \"Morning Rush (6h-9h)\",\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 16 AND 19 THEN total_count ELSE 0 END) AS \"Evening Rush (16h-19h)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day",
+              "refId": "A"
+            }
+          ],
+          "title": "Rush hour comparision (Morning vs Evening)",
+          "transformations": [
+            {
+              "id": "transpose",
+              "options": {}
+            }
+          ],
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "id": 4,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.1",
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "__default",
+                "database": "__default",
+                "region": "__default",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  date_trunc('hour', timestamp) AS time,\r\n  SUM(\r\n    COALESCE(element_at(counts, 'car'), 0) * 1.0 + \r\n    COALESCE(element_at(counts, 'motorcycle'), 0) * 0.25 + \r\n    COALESCE(element_at(counts, 'bus'), 0) * 2.5 + \r\n    COALESCE(element_at(counts, 'truck'), 0) * 2.0\r\n  ) AS \"Congestion Index (PCU)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day\r\nGROUP BY 1\r\nORDER BY 1 ASC",
+              "refId": "A"
+            }
+          ],
+          "title": "Passenger Car Unit - PCU",
           "type": "timeseries"
         },
         {
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
-          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "barWidthFactor": 0.6, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "showValues": false, "spanNulls": false, "stacking": { "group": "A", "mode": "normal" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 } ] } }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
           "id": 2,
-          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" } },
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
           "pluginVersion": "12.3.1",
-          "targets": [ { "connectionArgs": { "region": "us-east-1", "catalog": "AwsDataCatalog", "database": "traffic_analytics" }, "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, 
-          
-          "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(element_at(counts, 'car')) AS \"Cars\", SUM(element_at(counts, 'motorcycle')) AS \"Motorcycles\", SUM(element_at(counts, 'bus')) AS \"Buses\", SUM(element_at(counts, 'truck')) AS \"Trucks\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1", 
-          
-          "refId": "A" } ],
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "AwsDataCatalog",
+                "database": "traffic_analytics",
+                "region": "us-east-1",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  date_trunc('hour', timestamp) AS time, \r\n  SUM(COALESCE(element_at(counts, 'car'), 0)) AS \"Cars\", \r\n  SUM(COALESCE(element_at(counts, 'motorcycle'), 0)) AS \"Motorcycles\", \r\n  SUM(COALESCE(element_at(counts, 'bus'), 0)) AS \"Buses\", \r\n  SUM(COALESCE(element_at(counts, 'truck'), 0)) AS \"Trucks\" \r\nFROM \"traffic_analytics\".\"traffic_stream\" \r\nWHERE $__timeFilter(timestamp) \r\nGROUP BY 1 \r\nORDER BY 1 ASC",
+              "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(element_at(counts, 'car')) AS \"Cars\", SUM(element_at(counts, 'motorcycle')) AS \"Motorcycles\", SUM(element_at(counts, 'bus')) AS \"Buses\", SUM(element_at(counts, 'truck')) AS \"Trucks\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1",
+              "refId": "A"
+            }
+          ],
           "title": "Vehicle Types Distribution (History)",
           "type": "timeseries"
         },
         {
-          "datasource": { "type": "grafana-athena-datasource", "uid": "athena" },
-          "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 } ] }, "unit": "short" }, "overrides": [] },
-          "gridPos": { "h": 4, "w": 24, "x": 0, "y": 8 },
-          "id": 3,
-          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "percentChangeColorMode": "standard", "reduceOptions": { "calcs": [ "sum" ], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "id": 1,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
           "pluginVersion": "12.3.1",
-          "targets": [ { "connectionArgs": { "region": "us-east-1", "catalog": "AwsDataCatalog", "database": "traffic_analytics" }, "datasource": { "type": "grafana-athena-datasource", "uid": "athena" }, "format": 1, 
-          
-          "rawSql": "SELECT SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp)", 
-          
-          "refId": "A" } ],
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "AwsDataCatalog",
+                "database": "traffic_analytics",
+                "region": "us-east-1",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  date_trunc('hour', timestamp) AS time, \r\n  SUM(total_count) AS \"Total Vehicles\" \r\nFROM \"traffic_analytics\".\"traffic_stream\" \r\nWHERE $__timeFilter(timestamp) \r\nGROUP BY 1 \r\nORDER BY 1 ASC",
+              "rawSql": "SELECT date_trunc('hour', timestamp) AS time, SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1",
+              "refId": "A"
+            }
+          ],
+          "title": "Total Vehicle Count (History)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "grafana-athena-datasource",
+            "uid": "athena"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "sum"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.3.1",
+          "targets": [
+            {
+              "connectionArgs": {
+                "catalog": "AwsDataCatalog",
+                "database": "traffic_analytics",
+                "region": "us-east-1",
+                "resultReuseEnabled": false,
+                "resultReuseMaxAgeInMinutes": 60
+              },
+              "datasource": {
+                "type": "grafana-athena-datasource",
+                "uid": "athena"
+              },
+              "format": 1,
+              "rawSQL": "SELECT \r\n  SUM(total_count) AS \"Total Vehicles\" \r\nFROM \"traffic_analytics\".\"traffic_stream\" \r\nWHERE $__timeFilter(timestamp)",
+              "rawSql": "SELECT SUM(total_count) AS \"Total Vehicles\" FROM \"traffic_analytics\".\"traffic_stream\" WHERE $__timeFilter(timestamp)",
+              "refId": "A"
+            }
+          ],
           "title": "Total Vehicles in Range",
           "type": "stat"
         }
       ],
       "preload": false,
       "refresh": "1h",
-      "schemaVersion": 38,
-      "tags": ["traffic", "history", "athena"],
-      "templating": { "list": [] },
-      "time": { "from": "now-7d", "to": "now" },
+      "schemaVersion": 42,
+      "tags": [
+        "traffic",
+        "history",
+        "athena"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-7d",
+        "to": "now"
+      },
       "timepicker": {},
       "timezone": "",
       "title": "Traffic History (Athena)",
@@ -299,10 +856,10 @@ spec:
           mountPath: /var/lib/grafana/dashboards
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "100Mi"
+            cpu: "100m"
           limits:
-            memory: "512Mi" 
+            memory: "300Mi" 
             cpu: "500m"
       volumes:
       - name: grafana-storage
