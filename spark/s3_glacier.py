@@ -142,7 +142,7 @@ try:
     s3_query = (
         df_transformed
         # [QUAN TRỌNG] Gom thành 1 file duy nhất mỗi batch để tiết kiệm phí request Glacier
-        .coalesce(1) 
+        .repartition(1) 
         .writeStream
         .outputMode("append")
         .format("parquet")

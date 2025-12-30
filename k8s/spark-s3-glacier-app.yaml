@@ -24,8 +24,8 @@ spec:
     "spark.hadoop.fs.s3a.fast.upload.buffer": "disk"
     # ---------------------------------------------
     
-    "spark.driver.memoryOverhead": "256m"
-    "spark.executor.memoryOverhead": "256m"
+    "spark.driver.memoryOverhead": "400m"
+    "spark.executor.memoryOverhead": "400m"
     "spark.driver.extraJavaOptions": "-XX:+UseG1GC"
     "spark.executor.extraJavaOptions": "-XX:+UseG1GC"
     
@@ -45,7 +45,7 @@ spec:
   driver:
     coreRequest: "100m"
     coreLimit: "300m"
-    memory: 512m
+    memory: 800m
     serviceAccount: default
     labels:
       version: "3.5.1"
@@ -88,7 +88,7 @@ spec:
     instances: 1
     coreRequest: "100m"
     coreLimit: "300m"
-    memory: 512m
+    memory: 800m
     labels:
       version: "3.5.1"
     secrets:

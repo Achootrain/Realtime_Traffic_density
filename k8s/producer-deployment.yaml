@@ -24,8 +24,8 @@ spec:
           value: "kafka.traffic.svc.cluster.local:9092"
         resources:
           requests:
-            memory: "256Mi"
+            memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            memory: "300Mi"
             cpu: "250m"

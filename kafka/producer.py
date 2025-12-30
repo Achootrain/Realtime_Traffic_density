@@ -18,14 +18,14 @@ import gc
 
 CAMERA_JSON_FILE = "cameras.json" 
 BASE_URL = "https://giaothong.hochiminhcity.gov.vn/render/ImageHandler.ashx?id="
-BATCH_SIZE = 20          # batch cực nhỏ cho 2GB RAM
-BATCH_DELAY = 30         # delay 30s giữa batch
-MAX_WORKERS = 3          # 1 thread để tiết kiệm RAM + CPU
+BATCH_SIZE = 5           # Reduce batch size for memory safety
+BATCH_DELAY = 5            # Reduce delay since batches are smaller
+MAX_WORKERS = 1            # Single thread to minimize peak memory
 YOLO_CONF = 0.1
 TARGET_CLASSES = ['car', 'motorcycle', 'bus', 'truck']
 MAX_RETRIES = 3
 BACKOFF_FACTOR = 0.5
-RESIZE_WIDTH = 320       # resize nhỏ để giảm RAM
+RESIZE_WIDTH = 320         # Smaller resolution
 RESIZE_HEIGHT = 180
 
 # ===============================
