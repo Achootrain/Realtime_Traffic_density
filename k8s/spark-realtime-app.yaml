@@ -22,7 +22,7 @@ spec:
     # ------------------------------------------
     "spark.hadoop.hadoop.security.authentication": "simple"
     "spark.hadoop.fs.viewfs.enable": "false"
-    "spark.driver.memoryOverhead": "256m"
+    "spark.driver.memoryOverhead": "300m"
     "spark.executor.memoryOverhead": "256m"
     
     # Cấu hình Jemalloc chống OOM (Giữ nguyên)
@@ -34,7 +34,7 @@ spec:
   driver:
     coreRequest: "100m"
     coreLimit: "300m"
-    memory: 512m
+    memory: 800m
     serviceAccount: default
     labels:
       version: "3.4.0"
@@ -56,6 +56,12 @@ spec:
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
         value: "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic"
+      - name: DB_HOST
+        value: "timescaledb.traffic.svc.cluster.local"
+      - name: DB_PORT
+        value: "5432"
+      - name: DB_NAME
+        value: "traffic"
       - name: TIMESCALEDB_USER
         value: "postgres"
       - name: TIMESCALEDB_PASSWORD
@@ -99,6 +105,12 @@ spec:
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
         value: "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic"
+      - name: DB_HOST
+        value: "timescaledb.traffic.svc.cluster.local"
+      - name: DB_PORT
+        value: "5432"
+      - name: DB_NAME
+        value: "traffic"
       - name: TIMESCALEDB_USER
         value: "postgres"
       - name: TIMESCALEDB_PASSWORD

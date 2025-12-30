@@ -1,16 +1,21 @@
 import os
 import time
 import logging
+import psycopg2
+from psycopg2.extras import execute_values
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, expr, current_timestamp
+from pyspark.sql.functions import from_json, col, current_timestamp
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 
 # -----------------------------------------------------------
-# Spark session (retain original _jsc Hadoop config semantics)
+# Spark session setup
 # -----------------------------------------------------------
 spark = (
     SparkSession.builder
     .appName("KafkaTrafficRealtimeApp")
+    # Tối ưu hóa cho Structured Streaming
+    .config("spark.sql.shuffle.partitions", "4")  # Giảm partition vì dữ liệu nhỏ
+    .config("spark.streaming.stopGracefullyOnShutdown", "true")
     .getOrCreate()
 )
 
@@ -25,21 +30,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger("realtime_app")
 
-
+# ---------------------------------
+# Configuration
+# ---------------------------------
 KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "traffic")
 KAFKA_GROUP_ID = os.environ.get("KAFKA_GROUP_ID", "spark-realtime-group")
 KAFKA_STARTING_OFFSETS = os.environ.get("KAFKA_STARTING_OFFSETS", "earliest")
 
 TRIGGER_TIMESCALE = os.environ.get("TRIGGER_TIMESCALE", "10 seconds")
-TRIGGER_CONSOLE = os.environ.get("TRIGGER_CONSOLE", "5 seconds")
 
 CHECKPOINT_BASE = os.environ.get("CHECKPOINT_BASE", "/app/data/checkpoint")
 CHECKPOINT_TIMESCALE = os.path.join(CHECKPOINT_BASE, "traffic_timescaledb")
-CHECKPOINT_CONSOLE = os.path.join(CHECKPOINT_BASE, "traffic_console")
+
+# TimescaleDB / Postgres Config
+DB_HOST = os.environ.get("DB_HOST", "timescaledb.traffic.svc.cluster.local")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME", "traffic")
+DB_USER = os.environ.get("TIMESCALEDB_USER", "postgres")
+DB_PASS = os.environ.get("TIMESCALEDB_PASSWORD", "postgres")
+DB_TABLE = os.environ.get("TIMESCALEDB_TABLE", "traffic_metrics")
 
 # ---------------------------------
-# define JSON schema for Kafka payload (matching producer.py format)
+# Schema Definition
 # ---------------------------------
 schema = StructType([
     StructField("time", StringType()),
@@ -55,7 +68,7 @@ schema = StructType([
 ])
 
 # ---------------------------------
-# read stream from Kafka
+# Read Stream from Kafka
 # ---------------------------------
 df = (
     spark.readStream
@@ -65,130 +78,136 @@ df = (
     .option("kafka.group.id", KAFKA_GROUP_ID)
     .option("startingOffsets", KAFKA_STARTING_OFFSETS)
     .option("failOnDataLoss", "false")
+    .option("maxOffsetsPerTrigger", 1000)  # Giới hạn số msg để tránh OOM
     .load()
 )
 
-df_string = df.selectExpr("CAST(value AS STRING)")
-df_with_json = df_string.select(from_json(col("value"), schema).alias("data"), col("value").alias("raw_value"))
-df_parsed = df_with_json.where(col("data").isNotNull()).select("data.*")
+# Parse JSON
+df_parsed = (
+    df.selectExpr("CAST(value AS STRING)")
+    .select(from_json(col("value"), schema).alias("data"))
+    .select("data.*")
+    .where(col("camera_id").isNotNull())  # Lọc rác
+)
 
 # ---------------------------------
-# transform data for TimescaleDB
+# Transform Data
 # ---------------------------------
-df_valid = (
+df_timescale = (
     df_parsed
     .withColumn("is_valid",
                 (col("car_count") >= 0) & (col("bus_count") >= 0) &
-                (col("truck_count") >= 0) & (col("motorcycle_count") >= 0) &
-                (col("total_count") >= 0))
+                (col("truck_count") >= 0) & (col("motorcycle_count") >= 0))
     .filter(col("is_valid"))
-    .drop("is_valid")
+    .select(
+        col("time").cast("timestamp").alias("time"),
+        col("camera_id"),
+        col("camera").alias("camera_name"),
+        col("latitude"),
+        col("longitude"),
+        col("car_count"),
+        col("motorcycle_count"),
+        col("bus_count"),
+        col("truck_count"),
+        col("total_count"),
+        current_timestamp().alias("ingest_ts")
+    )
 )
 
-df_timescale = df_valid.select(
-    col("time").cast("timestamp").alias("time"),
-    col("camera_id"),
-    col("camera").alias("camera_name"),
-    col("latitude"),
-    col("longitude"),
-    col("car_count"),
-    col("motorcycle_count"),
-    col("bus_count"),
-    col("truck_count"),
-    col("total_count"),
-    current_timestamp().alias("ingest_ts")
-)
-
-
 # ---------------------------------
-# Write to TimescaleDB (PostgreSQL)
+# Writers Logic (Using psycopg2 for Upsert)
 # ---------------------------------
-TIMESCALEDB_URL = os.environ.get("TIMESCALEDB_URL", "jdbc:postgresql://timescaledb.traffic.svc.cluster.local:5432/traffic")
-TIMESCALEDB_USER = os.environ.get("TIMESCALEDB_USER", "postgres")
-TIMESCALEDB_PASSWORD = os.environ.get("TIMESCALEDB_PASSWORD", "postgres")
-TIMESCALEDB_TABLE = os.environ.get("TIMESCALEDB_TABLE", "traffic_metrics")
-
-def write_to_timescaledb(batch_df, batch_id):
-    """Write each micro-batch to TimescaleDB with basic retries."""
-    if batch_df is None:
+def write_to_timescaledb_upsert(batch_df, batch_id):
+    """
+    Writes batch to TimescaleDB using INSERT ON CONFLICT DO NOTHING.
+    This prevents duplicate key errors and ensures consistency.
+    """
+    if batch_df.isEmpty():
         return
 
-    # Cache once to avoid multiple actions
-    batch_df_cached = batch_df.persist()
-    row_count = batch_df_cached.count()
-    if row_count == 0:
-        batch_df_cached.unpersist()
-        return
+    # Cache data to prevent re-evaluation
+    batch_df.persist()
+    
+    try:
+        # 1. Deduplicate inside the batch (Spark side)
+        deduped_df = batch_df.dropDuplicates(["time", "camera_id"])
+        
+        # 2. Convert to list of tuples for psycopg2
+        rows = deduped_df.collect()
+        if not rows:
+            return
 
-    max_retries = int(os.environ.get("DB_WRITE_MAX_RETRIES", "3"))
-    backoff_sec = float(os.environ.get("DB_WRITE_BACKOFF_SEC", "2"))
+        # Prepare data structure for execute_values
+        data_values = [
+            (
+                row.time, row.camera_id, row.camera_name, row.latitude, row.longitude,
+                row.car_count, row.motorcycle_count, row.bus_count, row.truck_count,
+                row.total_count, row.ingest_ts
+            ) 
+            for row in rows
+        ]
 
-    last_err = None
-    for attempt in range(1, max_retries + 1):
+        # 3. Connect and Execute Upsert
+        conn = None
         try:
-            batch_df_cached.write \
-                .format("jdbc") \
-                .option("url", TIMESCALEDB_URL) \
-                .option("dbtable", TIMESCALEDB_TABLE) \
-                .option("user", TIMESCALEDB_USER) \
-                .option("password", TIMESCALEDB_PASSWORD) \
-                .option("driver", "org.postgresql.Driver") \
-                .mode("append") \
-                .save()
-            logger.info(f"Batch %s: wrote %s rows to TimescaleDB (attempt %s)", batch_id, row_count, attempt)
-            last_err = None
-            break
-        except Exception as e:
-            last_err = e
-            logger.error(f"Batch %s: write failed (attempt %s/%s): %s", batch_id, attempt, max_retries, e)
-            time.sleep(backoff_sec)
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS,
+                port=DB_PORT
+            )
+            cur = conn.cursor()
 
-    if last_err is not None:
-        logger.critical(f"Batch %s: failed to write after %s attempts: %s", batch_id, max_retries, last_err)
+            query = f"""
+                INSERT INTO {DB_TABLE} (
+                    time, camera_id, camera_name, latitude, longitude,
+                    car_count, motorcycle_count, bus_count, truck_count, 
+                    total_count, ingest_ts
+                ) VALUES %s
+                ON CONFLICT (time, camera_id) DO NOTHING;
+            """
+            
+            # Fast bulk insert
+            execute_values(cur, query, data_values)
+            conn.commit()
+            
+            logger.info(f"Batch {batch_id}: Upserted {len(data_values)} rows successfully.")
 
-    batch_df_cached.unpersist()
+        except Exception as db_err:
+            logger.error(f"Batch {batch_id}: DB Error: {db_err}")
+            if conn: conn.rollback()
+            # CRITICAL: Raise error to let Spark retry the batch
+            raise db_err
+        finally:
+            if conn: conn.close()
 
-# Start TimescaleDB sink
+    except Exception as e:
+        logger.error(f"Batch {batch_id}: General Error: {e}")
+        raise e
+    finally:
+        batch_df.unpersist()
+
+# ---------------------------------
+# Start Streaming
+# ---------------------------------
 try:
     timescale_query = (
         df_timescale.writeStream
         .outputMode("append")
         .queryName("timescale_sink")
-        .foreachBatch(write_to_timescaledb)
+        .foreachBatch(write_to_timescaledb_upsert)
         .option("checkpointLocation", CHECKPOINT_TIMESCALE)
         .trigger(processingTime=TRIGGER_TIMESCALE)
         .start()
     )
-    logger.info("TimescaleDB sink started")
-except Exception as e:
-    logger.critical("Could not start TimescaleDB sink: %s", e)
-
-# Also log to console for quick verification
-try:
-    console_query = (
-        df.selectExpr("CAST(value AS STRING)")
-        .writeStream
-        .outputMode("append")
-        .format("console")
-        .option("truncate", False)
-        .option("checkpointLocation", CHECKPOINT_CONSOLE)
-        .queryName("console_sink")
-        .trigger(processingTime=TRIGGER_CONSOLE)
-        .start()
-    )
-except Exception as e:
-    logger.error("Could not start console sink: %s", e)
-
-try:
+    logger.info("TimescaleDB (Upsert) stream started...")
+    
     spark.streams.awaitAnyTermination()
+
 except KeyboardInterrupt:
-    logger.info("Termination requested; stopping active streams...")
-    for q in spark.streams.active:
-        try:
-            logger.info("Stopping query: %s", q.name)
-            q.stop()
-        except Exception as e:
-            logger.error("Failed to stop query %s: %s", q.name, e)
-    logger.info("Shutdown complete")
-
-
+    logger.info("Stopping streams...")
+    spark.stop()
+except Exception as e:
+    logger.critical(f"Main loop crashed: {e}")
+    sys.exit(1)

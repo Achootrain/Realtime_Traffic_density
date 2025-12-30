@@ -24,12 +24,12 @@ spec:
     "spark.hadoop.fs.s3a.fast.upload.buffer": "disk"
     # ---------------------------------------------
     
-    "spark.driver.memoryOverhead": "400m"
-    "spark.executor.memoryOverhead": "400m"
+    "spark.driver.memoryOverhead": "256m"
+    "spark.executor.memoryOverhead": "256m"
     "spark.driver.extraJavaOptions": "-XX:+UseG1GC"
     "spark.executor.extraJavaOptions": "-XX:+UseG1GC"
     
-    # Cấu hình Jemalloc trong SparkConf (giữ nguyên để Spark biết)
+    # Cấu hình Jemalloc chống OOM (Giữ nguyên)
     "spark.driver.extraLibraryPath": "/usr/lib/x86_64-linux-gnu"
     "spark.executor.extraLibraryPath": "/usr/lib/x86_64-linux-gnu"
     "spark.kubernetes.driverEnv.LD_PRELOAD": "/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
@@ -45,7 +45,7 @@ spec:
   driver:
     coreRequest: "100m"
     coreLimit: "300m"
-    memory: 800m
+    memory: 512m
     serviceAccount: default
     labels:
       version: "3.5.1"
@@ -88,7 +88,7 @@ spec:
     instances: 1
     coreRequest: "100m"
     coreLimit: "300m"
-    memory: 800m
+    memory: 512m
     labels:
       version: "3.5.1"
     secrets:
