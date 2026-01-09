@@ -293,7 +293,7 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT \r\n  CASE extract(dow from timestamp)\r\n    WHEN 1 THEN '1. Monday'\r\n    WHEN 2 THEN '2. Tuesday'\r\n    WHEN 3 THEN '3. Wednesday'\r\n    WHEN 4 THEN '4. Thursday'\r\n    WHEN 5 THEN '5. Friday'\r\n    WHEN 6 THEN '6. Saturday'\r\n    WHEN 0 THEN '7. Sunday'\r\n  END AS \"Day of Week\",\r\n  AVG(total_count) AS \"Average Traffic Volume\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day\r\nGROUP BY 1\r\nORDER BY 1 ASC",
+              "rawSQL": "SELECT \r\n  CASE extract(dow from timestamp)\r\n    WHEN 1 THEN '1. Monday'\r\n    WHEN 2 THEN '2. Tuesday'\r\n    WHEN 3 THEN '3. Wednesday'\r\n    WHEN 4 THEN '4. Thursday'\r\n    WHEN 5 THEN '5. Friday'\r\n    WHEN 6 THEN '6. Saturday'\r\n    WHEN 0 THEN '7. Sunday'\r\n  END AS \"Day of Week\",\r\n  AVG(total_count) AS \"Average Traffic Volume\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE $__timeFilter(timestamp)\r\nGROUP BY 1\r\nORDER BY 1 ASC",
               "refId": "A"
             }
           ],
@@ -395,7 +395,7 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 6 AND 9 THEN total_count ELSE 0 END) AS \"Morning Rush (6h-9h)\",\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 16 AND 19 THEN total_count ELSE 0 END) AS \"Evening Rush (16h-19h)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day",
+              "rawSQL": "SELECT\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 6 AND 9 THEN total_count ELSE 0 END) AS \"Morning Rush (6h-9h)\",\r\n  SUM(CASE WHEN extract(hour from timestamp) BETWEEN 16 AND 19 THEN total_count ELSE 0 END) AS \"Evening Rush (16h-19h)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE $__timeFilter(timestamp)",
               "refId": "A"
             }
           ],
@@ -504,7 +504,7 @@ data:
                 "uid": "athena"
               },
               "format": 1,
-              "rawSQL": "SELECT \r\n  date_trunc('hour', timestamp) AS time,\r\n  SUM(\r\n    COALESCE(element_at(counts, 'car'), 0) * 1.0 + \r\n    COALESCE(element_at(counts, 'motorcycle'), 0) * 0.25 + \r\n    COALESCE(element_at(counts, 'bus'), 0) * 2.5 + \r\n    COALESCE(element_at(counts, 'truck'), 0) * 2.0\r\n  ) AS \"Congestion Index (PCU)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE timestamp >= now() - interval '7' day\r\nGROUP BY 1\r\nORDER BY 1 ASC",
+              "rawSQL": "SELECT \r\n  date_trunc('hour', timestamp) AS time,\r\n  SUM(\r\n    COALESCE(element_at(counts, 'car'), 0) * 1.0 + \r\n    COALESCE(element_at(counts, 'motorcycle'), 0) * 0.25 + \r\n    COALESCE(element_at(counts, 'bus'), 0) * 2.5 + \r\n    COALESCE(element_at(counts, 'truck'), 0) * 2.0\r\n  ) AS \"Congestion Index (PCU)\"\r\nFROM \"traffic_analytics\".\"traffic_stream\"\r\nWHERE $__timeFilter(timestamp)\r\nGROUP BY 1\r\nORDER BY 1 ASC",
               "refId": "A"
             }
           ],
