@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NAMESPACE="traffic"
-K8S_DIR="/home/ubuntu/k8s"
+K8S_DIR="/home/ubuntu/traffic-deploy/k8s"
 
 echo "===== CLEANING SPARK JOBS ====="
 kubectl delete -f $K8S_DIR/spark-batch-app.yaml -n $NAMESPACE --ignore-not-found

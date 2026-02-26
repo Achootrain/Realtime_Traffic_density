@@ -74,13 +74,13 @@ kubectl describe sparkapplication spark-realtime-python -n traffic
 kubectl logs spark-realtime-python-driver -n traffic
 
 # TimescaleDB check (replace pod)
-kubectl exec -n traffic <timescaledb-pod> -- psql -U postgres -d traffic -c "SELECT COUNT(*) FROM traffic_metrics;"
+kubectl exec -n traffic timescaledb-0 -- psql -U postgres -d traffic -c "SELECT COUNT(*) FROM traffic_metrics;"
 ```
 
 ### 6 Cleanup
 ```bash
-chmod +x /home/ubuntu/clean.sh
-/home/ubuntu/clean.sh
+chmod +x /home/ubuntu/traffic-deploy/clean.sh
+/home/ubuntu/traffic-deploy/clean.sh
 
 kubectl delete sparkapplication spark-realtime-python -n traffic
 kubectl delete deployment grafana -n traffic

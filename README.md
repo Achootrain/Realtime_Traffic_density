@@ -111,3 +111,10 @@ kubectl delete namespace traffic
 ## Notes
 - Adjust resource requests/limits in manifests as needed for your EC2 size.
 - Use GHCR "latest" for simplicity; for production, prefer immutable tags.
+
+
+cd terraform
+cp terraform.tfvars.example terraform.tfvars  # Edit with real values
+terraform init
+terraform plan
+terraform apply

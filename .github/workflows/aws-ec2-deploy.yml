@@ -145,8 +145,7 @@ jobs:
             # Cài đặt/Upgrade Spark Operator
             helm upgrade --install spark-operator-1 spark-operator/spark-operator \
               --namespace traffic \
-              --set sparkJobNamespace=traffic \
-              --set watchNamespace=traffic \
+              --set controller.namespaces={traffic} \
               --set webhook.enable=true
 
             # Apply tất cả qua kustomization để thống nhất namespace & images

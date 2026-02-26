@@ -1,0 +1,21 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+*.auto.tfvars
+
+# SSH keys
+*.pem
+id_rsa*
+
+# Kubeconfig fetched from EC2
+kubeconfig

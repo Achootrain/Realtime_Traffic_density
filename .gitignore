@@ -1,2 +1,4 @@
 spark/jars/*
 kafka/data/*
+terraform/terraform.tfvars.example
+.vscode/
