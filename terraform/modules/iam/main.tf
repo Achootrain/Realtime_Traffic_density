@@ -69,6 +69,16 @@ resource "aws_iam_user_policy" "service" {
         ]
         Resource = "*"
       },
+      {
+        Sid    = "SSMDeploy"
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+        ]
+        Resource = "*"
+      },
     ]
   })
 }

@@ -25,6 +25,11 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
   --tls-san=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)" \
   sh -
 
+# Ensure SSM agent is running (installed via snap on Ubuntu 22.04)
+sudo snap install amazon-ssm-agent --classic 2>/dev/null || true
+sudo systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+sudo systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+
 # Wait for K3s to be ready
 echo "Waiting for K3s to be ready..."
 until kubectl get nodes 2>/dev/null | grep -q " Ready"; do

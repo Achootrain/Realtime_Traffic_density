@@ -1,5 +1,13 @@
 name: Build & Deploy to GHCR (K3s)
 
+# ============================================
+# Deployment uses AWS SSM (no SSH required).
+# Required GitHub Secrets:
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  — IAM user with ssm:SendCommand + ssm:GetCommandInvocation
+#   EC2_INSTANCE_ID  — e.g. i-0b5593095b09bbb82
+#   GHCR_USERNAME, GHCR_TOKEN  — for imagePullSecrets
+# ============================================
+
 on:
   push:
     branches: [ main ]
@@ -26,12 +34,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. Chuẩn hóa tên Repo (Chữ thường)
+      # 1. Lowercase repo owner
       - name: Lowercase Repo Owner
         run: |
           echo "REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
 
-      # 2. Logic chọn service
+      # 2. Resolve build target
       - name: Resolve build target
         id: target
         shell: bash
@@ -50,138 +58,132 @@ jobs:
           fi
           
           echo "service=$CHOSEN_SERVICE" >> "$GITHUB_OUTPUT"
-          
-          if [[ "$CHOSEN_SERVICE" == "kafka" ]]; then
-             echo "context=kafka" >> "$GITHUB_OUTPUT"
-             echo "dockerfile=kafka/dockerfile" >> "$GITHUB_OUTPUT"
-             echo "image_name=traffic-kafka" >> "$GITHUB_OUTPUT"
-          elif [[ "$CHOSEN_SERVICE" == "spark" ]]; then
-             echo "context=spark" >> "$GITHUB_OUTPUT"
-             echo "dockerfile=spark/dockerfile" >> "$GITHUB_OUTPUT"
-             echo "image_name=traffic-spark" >> "$GITHUB_OUTPUT"
+
+      # 3. Configure AWS credentials (for SSM)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # 4. Copy manifests to EC2 via SSM (tar → base64 → SSM → decode)
+      - name: Upload manifests via SSM
+        run: |
+          # Package k8s manifests, init.sql, and clean.sh into a tarball
+          tar czf /tmp/deploy-bundle.tar.gz k8s/*.yaml timescaledb/init.sql clean.sh
+
+          # Base64 encode (SSM has 24KB command limit, tar is small enough)
+          BUNDLE_B64=$(base64 -w0 /tmp/deploy-bundle.tar.gz)
+
+          # Send via SSM
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              \"mkdir -p /home/ubuntu/k8s /home/ubuntu/timescaledb\",
+              \"echo '$BUNDLE_B64' | base64 -d > /tmp/deploy-bundle.tar.gz\",
+              \"cd /home/ubuntu && tar xzf /tmp/deploy-bundle.tar.gz\",
+              \"chmod +x /home/ubuntu/clean.sh\",
+              \"rm -f /tmp/deploy-bundle.tar.gz\"
+            ]" \
+            --timeout-seconds 60 \
+            --query "Command.CommandId" --output text)
+
+          # Wait for completion
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" || true
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+            --query "Status" --output text)
+
+          if [[ "$STATUS" != "Success" ]]; then
+            echo "SSM copy command failed with status: $STATUS"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+              --query "StandardErrorContent" --output text
+            exit 1
           fi
 
-      # 3-4. Skip build & push: use public Docker Hub images (achootrain/*)
+          echo "Manifests uploaded successfully via SSM"
 
-      # 5. Copy file YAML và init.sql lên Server
-      - name: Copy k8s manifests to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "k8s/*.yaml,timescaledb/init.sql,clean.sh"
-          target: "/home/ubuntu/"
+      # 5. Deploy on K3s via SSM
+      - name: Deploy on K3s via SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --timeout-seconds 300 \
+            --parameters "commands=[
+              \"#!/bin/bash\",
+              \"set -e\",
+              \"export KUBECONFIG=/home/ubuntu/.kube/config\",
+              \"export HOME=/home/ubuntu\",
+              \"cd /home/ubuntu/k8s\",
+              \"\",
+              \"# Resolve EC2 public IP for Kafka advertised listener\",
+              \"EC2_HOST=\\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)\",
+              \"sed -i \\\"s/IP_PLACEHOLDER/\\$EC2_HOST/g\\\" kafka.yaml || true\",
+              \"\",
+              \"# Setup Helm\",
+              \"if ! command -v helm &> /dev/null; then curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash; fi\",
+              \"helm repo add spark-operator https://kubeflow.github.io/spark-operator || true\",
+              \"helm repo update\",
+              \"\",
+              \"# Create namespace\",
+              \"kubectl create namespace traffic --dry-run=client -o yaml | kubectl apply -f -\",
+              \"\",
+              \"# Create GHCR imagePullSecret\",
+              \"kubectl create secret docker-registry ghcr-secret --namespace traffic --docker-server=ghcr.io --docker-username='${{ secrets.GHCR_USERNAME }}' --docker-password='${{ secrets.GHCR_TOKEN }}' --docker-email=noreply@example.com --dry-run=client -o yaml | kubectl apply -f -\",
+              \"\",
+              \"# Create AWS credentials secret\",
+              \"kubectl create secret generic aws-credentials --namespace traffic --from-literal=access_key_id='${{ secrets.AWS_ACCESS_KEY_ID }}' --from-literal=secret_access_key='${{ secrets.AWS_SECRET_ACCESS_KEY }}' --dry-run=client -o yaml | kubectl apply -f -\",
+              \"\",
+              \"# Install/Upgrade Spark Operator\",
+              \"helm upgrade --install spark-operator-1 spark-operator/spark-operator --namespace traffic --set controller.namespaces={traffic} --set webhook.enable=true\",
+              \"\",
+              \"# Apply kustomize\",
+              \"kubectl apply -k .\",
+              \"\",
+              \"# Init TimescaleDB\",
+              \"kubectl wait --for=condition=ready pod/timescaledb-0 -n traffic --timeout=120s || true\",
+              \"if [ -f /home/ubuntu/timescaledb/init.sql ]; then kubectl cp /home/ubuntu/timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql; kubectl exec timescaledb-0 -n traffic -- psql -U postgres -d traffic -f /tmp/init.sql || true; fi\",
+              \"\",
+              \"# Restart based on service\",
+              \"SERVICE_NAME='${{ steps.target.outputs.service }}'\",
+              \"if [ \\\"\\$SERVICE_NAME\\\" == \\\"kafka\\\" ]; then kubectl rollout restart statefulset/kafka -n traffic || true; kubectl rollout restart deployment/kafka-producer -n traffic || true; elif [ \\\"\\$SERVICE_NAME\\\" == \\\"spark\\\" ]; then kubectl delete sparkapplication spark-realtime-python -n traffic --ignore-not-found; kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found; sleep 5; kubectl apply -f spark-realtime-app.yaml -n traffic; kubectl apply -f spark-s3-glacier-app.yaml -n traffic; fi\",
+              \"\",
+              \"echo 'Deploy complete!'\"
+            ]" \
+            --query "Command.CommandId" --output text)
 
-      # 6. Deploy lên K3s (Phần quan trọng nhất)
-      - name: Deploy on K3s
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          REPO_OWNER: ${{ env.REPO_OWNER }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          SERVICE_NAME: ${{ steps.target.outputs.service }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: REPO_OWNER,EC2_HOST,SERVICE_NAME,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,GHCR_USERNAME,GHCR_TOKEN
-          script: |
-            set -e
-            
-            # A. CẤP QUYỀN KUBECTL (Để user ubuntu chạy được lệnh)
-            # Copy config của K3s ra chỗ user ubuntu đọc được
-            mkdir -p ~/.kube
-            sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-            sudo chown ubuntu:ubuntu ~/.kube/config
-            sudo chmod 600 ~/.kube/config
-            export KUBECONFIG=~/.kube/config
-            
-            cd /home/ubuntu/k8s
-            
-            # B. XỬ LÝ IP ĐỘNG CHO KAFKA (Quan trọng)
-            # Tìm chữ 'IP_PLACEHOLDER' trong file kafka.yaml và thay bằng IP thật
-            sed -i "s/IP_PLACEHOLDER/$EC2_HOST/g" kafka.yaml || true
-            
-            # C. Không cần thay thế username Docker Hub (dùng image cố định achootrain/*)
+          echo "SSM Command ID: $COMMAND_ID"
 
-            echo "Setting up Helm and Spark Operator..."
-            
-            # Cài đặt Helm nếu chưa có
-            if ! command -v helm &> /dev/null; then
-              curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-            fi
-            
-            # Thêm Spark Operator Helm repo
-            helm repo add spark-operator https://kubeflow.github.io/spark-operator || true
-            helm repo update
-            
-            echo "Applying Kustomize manifests..."
+          # Wait for command to complete
+          echo "Waiting for deployment to complete..."
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" || true
 
-            # Tạo namespace nếu chưa có
-            kubectl create namespace traffic --dry-run=client -o yaml | kubectl apply -f -
+          # Get result
+          RESULT=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}")
 
-            # D. TẠO GHCR IMAGEPULLSECRET TỪ GITHUB SECRETS (cho imagePullSecrets: ghcr-secret)
-            echo "Creating GHCR imagePullSecret (ghcr-secret)..."
-            kubectl create secret docker-registry ghcr-secret \
-              --namespace traffic \
-              --docker-server=ghcr.io \
-              --docker-username="$GHCR_USERNAME" \
-              --docker-password="$GHCR_TOKEN" \
-              --docker-email="noreply@example.com" \
-              --dry-run=client -o yaml | kubectl apply -f -
-            
-            # D. TẠO AWS CREDENTIALS SECRET TỪ GITHUB SECRETS
-            echo "Creating AWS credentials secret..."
-            kubectl create secret generic aws-credentials \
-              --namespace traffic \
-              --from-literal=access_key_id="$AWS_ACCESS_KEY_ID" \
-              --from-literal=secret_access_key="$AWS_SECRET_ACCESS_KEY" \
-              --dry-run=client -o yaml | kubectl apply -f -
-            
-            # Cài đặt/Upgrade Spark Operator
-            helm upgrade --install spark-operator-1 spark-operator/spark-operator \
-              --namespace traffic \
-              --set controller.namespaces={traffic} \
-              --set webhook.enable=true
+          STATUS=$(echo "$RESULT" | jq -r '.Status')
+          echo "Command Status: $STATUS"
+          echo "--- STDOUT ---"
+          echo "$RESULT" | jq -r '.StandardOutputContent'
+          echo "--- STDERR ---"
+          echo "$RESULT" | jq -r '.StandardErrorContent'
 
-            # Apply tất cả qua kustomization để thống nhất namespace & images
-            kubectl apply -k .
-            
-            # E. INIT TIMESCALEDB (Chạy init.sql nếu chưa có table)
-            echo "Initializing TimescaleDB..."
-            # Wait for TimescaleDB to be ready
-            kubectl wait --for=condition=ready pod/timescaledb-0 -n traffic --timeout=120s || true
-            
-            # Copy và chạy init.sql
-            if [ -f "/home/ubuntu/timescaledb/init.sql" ]; then
-              kubectl cp /home/ubuntu/timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql
-              kubectl exec timescaledb-0 -n traffic -- psql -U postgres -d traffic -f /tmp/init.sql || true
-              echo "TimescaleDB initialized"
-            fi
-            
-            echo "Restarting deployments to pick up new image..."
-            if [ "$SERVICE_NAME" == "kafka" ]; then
-               # Restart Kafka StatefulSet
-               kubectl rollout restart statefulset/kafka -n traffic || true
-               # Restart Producer (Deployment)
-               kubectl rollout restart deployment/kafka-producer -n traffic || true
-            elif [ "$SERVICE_NAME" == "spark" ]; then
-               # Delete và tạo lại SparkApplication để operator deploy lại
-               # 1. Realtime App
-               kubectl delete sparkapplication spark-realtime-python -n traffic --ignore-not-found
-               # 2. S3 Glacier App
-               kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found
-               
-               sleep 5
-               
-               # Re-apply only Spark apps explicitly to ensure they start (kustomize apply might have been deleted)
-               kubectl apply -f spark-realtime-app.yaml -n traffic
-               kubectl apply -f spark-s3-glacier-app.yaml -n traffic
-               echo "Spark applications restarted"
-            fi
-            
-            echo "Done."
+          if [[ "$STATUS" != "Success" ]]; then
+            echo "Deployment failed!"
+            exit 1
+          fi
+
+          echo "Deployment successful!"

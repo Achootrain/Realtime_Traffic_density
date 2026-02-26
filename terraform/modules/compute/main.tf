@@ -32,6 +32,38 @@ resource "aws_key_pair" "k3s" {
   }
 }
 
+# -------------------------------------------
+# IAM Instance Profile for SSM
+# -------------------------------------------
+resource "aws_iam_role" "k3s_ec2" {
+  name = "${var.project_name}-k3s-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = {
+    Name = "${var.project_name}-k3s-ec2-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_core" {
+  role       = aws_iam_role.k3s_ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "k3s_ec2" {
+  name = "${var.project_name}-k3s-ec2-profile"
+  role = aws_iam_role.k3s_ec2.name
+}
+
 # EC2 Instance
 resource "aws_instance" "k3s" {
   ami                    = data.aws_ami.ubuntu.id
@@ -39,6 +71,7 @@ resource "aws_instance" "k3s" {
   key_name               = aws_key_pair.k3s.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]
+  iam_instance_profile   = aws_iam_instance_profile.k3s_ec2.name
 
   user_data = file("${path.module}/userdata.sh")
 
