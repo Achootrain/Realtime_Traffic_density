@@ -1,4 +1,4 @@
-# Traffic System: Deploy to EC2 (K3s) via GitHub Actions
+# Traffic System: Deploy to EC2 (K3s) via GitHub Actions,Terraform
 
 This guide walks through deploying Kafka producer, Spark app, TimescaleDB, Grafana, and MinIO to your EC2-hosted K3s cluster using the provided GitHub Actions workflow.
 
