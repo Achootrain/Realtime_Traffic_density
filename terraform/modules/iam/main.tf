@@ -15,7 +15,7 @@ resource "aws_iam_access_key" "service" {
   user = aws_iam_user.service.name
 }
 
-# Policy: S3 access + Athena queries + Glue catalog
+# Policy: S3 access + Athena queries + Glue catalog + Terraform state
 resource "aws_iam_user_policy" "service" {
   name = "${var.project_name}-service-policy"
   user = aws_iam_user.service.name
@@ -24,7 +24,7 @@ resource "aws_iam_user_policy" "service" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "S3Access"
+        Sid    = "S3DataAccess"
         Effect = "Allow"
         Action = [
           "s3:GetObject",
@@ -39,6 +39,30 @@ resource "aws_iam_user_policy" "service" {
           "arn:aws:s3:::${var.s3_bucket_name}",
           "arn:aws:s3:::${var.s3_bucket_name}/*",
         ]
+      },
+      {
+        Sid    = "TerraformStateAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.tfstate_bucket_name}",
+          "arn:aws:s3:::${var.tfstate_bucket_name}/*",
+        ]
+      },
+      {
+        Sid    = "TerraformLockAccess"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+        ]
+        Resource = "arn:aws:dynamodb:*:*:table/terraform-locks"
       },
       {
         Sid    = "AthenaAccess"
@@ -82,3 +106,4 @@ resource "aws_iam_user_policy" "service" {
     ]
   })
 }
+
