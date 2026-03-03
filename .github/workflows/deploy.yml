@@ -135,7 +135,7 @@ jobs:
             CHANGED_SERVICES=""
 
             # Read each service's source_dir from services.json
-            for row in $(jq -c '.services[]' services.json); do
+            for row in $(cat services.json | tr -d '\r' | jq -c '.services[]'); do
               SVC_NAME=$(echo "$row" | jq -r '.name')
               SRC_DIR=$(echo "$row" | jq -r '.source_dir')
 
@@ -205,7 +205,7 @@ jobs:
 
           # ---- Helm repos from services.json ----
           if [ -f /home/ubuntu/services.json ]; then
-            for repo in $(jq -r '.helm_repos | to_entries[] | "\(.key)=\(.value)"' /home/ubuntu/services.json); do
+            for repo in $(cat /home/ubuntu/services.json | tr -d '\r' | jq -r '.helm_repos | to_entries[] | "\(.key)=\(.value)"'); do
               REPO_NAME="${repo%%=*}"
               REPO_URL="${repo#*=}"
               helm repo add "$REPO_NAME" "$REPO_URL" || true
@@ -237,7 +237,7 @@ jobs:
 
           # ---- Helm releases from services.json ----
           if [ -f /home/ubuntu/services.json ]; then
-            for release in \$(jq -c '.helm_releases[]' /home/ubuntu/services.json); do
+            for release in \$(cat /home/ubuntu/services.json | tr -d '\r' | jq -c '.helm_releases[]'); do
               REL_NAME=\$(echo "\$release" | jq -r '.name')
               REL_CHART=\$(echo "\$release" | jq -r '.chart')
               SET_FLAGS=""
@@ -261,7 +261,7 @@ jobs:
 
           # ---- Restart changed services (data-driven) ----
           if [ -f /home/ubuntu/services.json ]; then
-            for svc in \$(jq -c '.services[]' /home/ubuntu/services.json); do
+            for svc in \$(cat /home/ubuntu/services.json | tr -d '\r' | jq -c '.services[]'); do
               SVC_NAME=\$(echo "\$svc" | jq -r '.name')
 
               # Check if this service should be restarted
