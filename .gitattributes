@@ -1,0 +1,8 @@
+# Force LF line endings for all text files used in CI
+*.sh     text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.tf     text eol=lf
+*.tfvars text eol=lf
+*.sql    text eol=lf
