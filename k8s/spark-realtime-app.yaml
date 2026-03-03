@@ -51,7 +51,7 @@ spec:
       - name: KAFKA_BOOTSTRAP_SERVERS
         value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "hugedata"
+        value: "traffic"
       - name: KAFKA_GROUP_ID
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
@@ -91,7 +91,7 @@ spec:
       - name: KAFKA_BOOTSTRAP_SERVERS
         value: "kafka.traffic.svc.cluster.local:9092"
       - name: KAFKA_TOPIC
-        value: "hugedata"
+        value: "traffic"
       - name: KAFKA_GROUP_ID
         value: "spark-realtime-group"
       - name: TIMESCALEDB_URL
