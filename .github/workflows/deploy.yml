@@ -111,12 +111,9 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Lowercase Repo Owner
-        run: echo "REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
-
       - name: Detect changed services
         id: detect
-        run: bash .github/scripts/detect-changes.sh "${{ github.event.inputs.service }}"
+        run: python3 .github/scripts/detect-changes.py "${{ github.event.inputs.service }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -147,7 +144,7 @@ jobs:
         env:
           S3_BUCKET_NAME: traffic-count-bigdata
         run: |
-          bash .github/scripts/ssm-deploy.sh \
+          python3 .github/scripts/ssm-deploy.py \
             "${{ steps.resolve_ec2.outputs.instance_id }}" \
             "${{ steps.detect.outputs.services }}"
 

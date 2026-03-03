@@ -34,7 +34,7 @@ fi
 # ---- Helm repos from services.json ----
 CONFIG="/home/ubuntu/services.json"
 if [ -f "$CONFIG" ]; then
-  for repo in $(jq -r '.helm_repos | to_entries[] | "\(.key)=\(.value)"' "$CONFIG"); do
+  jq -r '.helm_repos | to_entries[] | "\(.key)=\(.value)"' "$CONFIG" | while IFS= read -r repo; do
     REPO_NAME="${repo%%=*}"
     REPO_URL="${repo#*=}"
     helm repo add "$REPO_NAME" "$REPO_URL" || true
@@ -66,13 +66,10 @@ kubectl create secret generic aws-credentials \
 
 # ---- Helm releases from services.json ----
 if [ -f "$CONFIG" ]; then
-  for release in $(jq -c '.helm_releases[]' "$CONFIG"); do
+  jq -c '.helm_releases[]' "$CONFIG" | while IFS= read -r release; do
     REL_NAME=$(echo "$release" | jq -r '.name')
     REL_CHART=$(echo "$release" | jq -r '.chart')
-    SET_FLAGS=""
-    for kv in $(echo "$release" | jq -r '.set | to_entries[] | "--set \(.key)=\(.value)"'); do
-      SET_FLAGS="$SET_FLAGS $kv"
-    done
+    SET_FLAGS=$(echo "$release" | jq -r '.set | to_entries[] | "--set \(.key)=\(.value)"' | tr '\n' ' ')
     echo ">>> Installing Helm release: $REL_NAME"
     helm upgrade --install "$REL_NAME" "$REL_CHART" --namespace traffic $SET_FLAGS
   done
@@ -90,15 +87,15 @@ fi
 
 # ---- Restart changed services (data-driven) ----
 if [ -f "$CONFIG" ]; then
-  for svc in $(jq -c '.services[]' "$CONFIG"); do
+  jq -c '.services[]' "$CONFIG" | while IFS= read -r svc; do
     SVC_NAME=$(echo "$svc" | jq -r '.name')
 
     if [[ "$CHANGED_SERVICES" == "all" ]] || echo "$CHANGED_SERVICES" | grep -qw "$SVC_NAME"; then
       echo ">>> Restarting service: $SVC_NAME"
-      while IFS= read -r cmd; do
+      echo "$svc" | jq -r '.restart[]' | while IFS= read -r cmd; do
         echo "    Running: $cmd"
         eval "$cmd" || true
-      done < <(echo "$svc" | jq -r '.restart[]')
+      done
     fi
   done
 fi
