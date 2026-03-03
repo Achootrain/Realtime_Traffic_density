@@ -23,6 +23,23 @@ def aws_cmd(args, capture=True):
     return result
 
 
+def send_ssm_command(ec2_id, commands, timeout=60):
+    """Send an SSM command and return the command ID. Exits on failure."""
+    result = aws_cmd([
+        "ssm", "send-command",
+        "--instance-ids", ec2_id,
+        "--document-name", "AWS-RunShellScript",
+        "--timeout-seconds", str(timeout),
+        "--parameters", json.dumps({"commands": commands}),
+        "--query", "Command.CommandId", "--output", "text"
+    ])
+    cmd_id = result.stdout.strip()
+    if not cmd_id or len(cmd_id) < 36:
+        print(f">>> SSM send-command failed! stderr: {result.stderr}", file=sys.stderr)
+        sys.exit(1)
+    return cmd_id
+
+
 def create_bundle():
     """Create the deploy bundle tarball."""
     print(">>> Creating deploy bundle...")
@@ -59,23 +76,13 @@ def upload_via_s3(ec2_id, bucket):
     aws_cmd(["s3", "cp", "/tmp/deploy-bundle.tar.gz",
              f"s3://{bucket}/deploy/deploy-bundle.tar.gz"])
 
-    result = aws_cmd([
-        "ssm", "send-command",
-        "--instance-ids", ec2_id,
-        "--document-name", "AWS-RunShellScript",
-        "--timeout-seconds", "60",
-        "--parameters", json.dumps({
-            "commands": [
-                "mkdir -p /home/ubuntu/k8s /home/ubuntu/timescaledb /home/ubuntu/scripts",
-                f"aws s3 cp s3://{bucket}/deploy/deploy-bundle.tar.gz /tmp/deploy-bundle.tar.gz",
-                "cd /home/ubuntu && tar xzf /tmp/deploy-bundle.tar.gz",
-                "chmod +x /home/ubuntu/clean.sh",
-                "rm -f /tmp/deploy-bundle.tar.gz"
-            ]
-        }),
-        "--query", "Command.CommandId", "--output", "text"
+    return send_ssm_command(ec2_id, [
+        "mkdir -p /home/ubuntu/k8s /home/ubuntu/timescaledb /home/ubuntu/scripts",
+        f"aws s3 cp s3://{bucket}/deploy/deploy-bundle.tar.gz /tmp/deploy-bundle.tar.gz",
+        "cd /home/ubuntu && tar xzf /tmp/deploy-bundle.tar.gz",
+        "chmod +x /home/ubuntu/clean.sh",
+        "rm -f /tmp/deploy-bundle.tar.gz"
     ])
-    return result.stdout.strip()
 
 
 def upload_inline(ec2_id):
@@ -84,23 +91,13 @@ def upload_inline(ec2_id):
     with open("/tmp/deploy-bundle.tar.gz", "rb") as f:
         bundle_b64 = base64.b64encode(f.read()).decode()
 
-    result = aws_cmd([
-        "ssm", "send-command",
-        "--instance-ids", ec2_id,
-        "--document-name", "AWS-RunShellScript",
-        "--timeout-seconds", "60",
-        "--parameters", json.dumps({
-            "commands": [
-                "mkdir -p /home/ubuntu/k8s /home/ubuntu/timescaledb /home/ubuntu/scripts",
-                f"echo '{bundle_b64}' | base64 -d > /tmp/deploy-bundle.tar.gz",
-                "cd /home/ubuntu && tar xzf /tmp/deploy-bundle.tar.gz",
-                "chmod +x /home/ubuntu/clean.sh",
-                "rm -f /tmp/deploy-bundle.tar.gz"
-            ]
-        }),
-        "--query", "Command.CommandId", "--output", "text"
+    return send_ssm_command(ec2_id, [
+        "mkdir -p /home/ubuntu/k8s /home/ubuntu/timescaledb /home/ubuntu/scripts",
+        f"echo '{bundle_b64}' | base64 -d > /tmp/deploy-bundle.tar.gz",
+        "cd /home/ubuntu && tar xzf /tmp/deploy-bundle.tar.gz",
+        "chmod +x /home/ubuntu/clean.sh",
+        "rm -f /tmp/deploy-bundle.tar.gz"
     ])
-    return result.stdout.strip()
 
 
 def wait_for_command(ec2_id, command_id):
@@ -120,19 +117,9 @@ def wait_for_command(ec2_id, command_id):
 def run_deploy(ec2_id, changed_services):
     """Execute deploy.py on EC2 via SSM."""
     print(f">>> Running deploy on EC2: {ec2_id}")
-    result = aws_cmd([
-        "ssm", "send-command",
-        "--instance-ids", ec2_id,
-        "--document-name", "AWS-RunShellScript",
-        "--timeout-seconds", "300",
-        "--parameters", json.dumps({
-            "commands": [
-                f"cd /home/ubuntu && python3 scripts/deploy.py {changed_services}"
-            ]
-        }),
-        "--query", "Command.CommandId", "--output", "text"
-    ])
-    return result.stdout.strip()
+    return send_ssm_command(ec2_id, [
+        f"cd /home/ubuntu && python3 scripts/deploy.py {changed_services}"
+    ], timeout=300)
 
 
 def main():
