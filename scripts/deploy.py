@@ -116,6 +116,12 @@ def install_helm_releases(config):
         )
         print(f">>> Installing Helm release: {name}")
         run(f'helm upgrade --install "{name}" "{chart}" --namespace traffic {set_flags}')
+        
+        # If this is the spark-operator, we MUST wait for the webhook to be ready
+        # otherwise subsequent 'kubectl apply' of SparkApplications will fail
+        if "spark-operator" in name:
+            print(">>> Waiting for Spark Operator Webhook to be ready...")
+            run("kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=spark-operator -n traffic --timeout=120s || true")
 
 
 def apply_manifests():
