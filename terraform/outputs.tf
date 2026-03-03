@@ -33,6 +33,12 @@ output "iam_access_key_id" {
   sensitive   = true
 }
 
+output "iam_secret_access_key" {
+  description = "IAM secret access key for the service user"
+  value       = module.iam.secret_access_key
+  sensitive   = true
+}
+
 output "grafana_url" {
   description = "Grafana URL (NodePort 3000)"
   value       = "http://${module.compute.public_ip}:3000"

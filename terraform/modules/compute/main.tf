@@ -19,13 +19,9 @@ data "aws_ami" "ubuntu" {
 }
 
 # SSH Key Pair
-data "local_file" "ssh_public_key" {
-  filename = pathexpand(var.ssh_public_key_path)
-}
-
 resource "aws_key_pair" "k3s" {
   key_name   = "${var.project_name}-k3s-key"
-  public_key = trimspace(data.local_file.ssh_public_key.content)
+  public_key = trimspace(var.ssh_public_key)
 
   tags = {
     Name = "${var.project_name}-k3s-key"
@@ -106,7 +102,7 @@ resource "null_resource" "wait_for_k3s" {
   connection {
     type        = "ssh"
     user        = "ubuntu"
-    private_key = file(var.ssh_private_key_path)
+    private_key = var.ssh_private_key
     host        = aws_instance.k3s.public_ip
     timeout     = "10m"
   }

@@ -1,15 +1,9 @@
 # ===========================================
-# AWS Authentication
-# ===========================================
-variable "aws_credentials_csv_path" {
-  description = "Path to AWS access keys CSV file (columns: Access key ID, Secret access key)"
-  type        = string
-  default     = "~/.ssh/Achootrain_accessKeys.csv"
-}
-
-# ===========================================
 # General
 # ===========================================
+# AWS credentials are provided via environment variables:
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+
 variable "aws_region" {
   description = "AWS region to deploy into"
   type        = string
@@ -43,13 +37,13 @@ variable "root_volume_size" {
   default     = 40
 }
 
-variable "ssh_public_key_path" {
-  description = "Local path to SSH public key for EC2 access"
+variable "ssh_public_key" {
+  description = "SSH public key content for EC2 key pair"
   type        = string
 }
 
-variable "ssh_private_key_path" {
-  description = "Local path to SSH private key (for provisioners)"
+variable "ssh_private_key" {
+  description = "SSH private key content (for provisioners)"
   type        = string
   sensitive   = true
 }
@@ -88,28 +82,4 @@ variable "glacier_transition_days" {
   description = "Days before S3 objects transition to Glacier"
   type        = number
   default     = 30
-}
-
-# ===========================================
-# GHCR (GitHub Container Registry)
-# ===========================================
-variable "ghcr_username" {
-  description = "GitHub Container Registry username"
-  type        = string
-}
-
-variable "ghcr_token" {
-  description = "GitHub Container Registry personal access token"
-  type        = string
-  sensitive   = true
-}
-
-# ===========================================
-# Application
-# ===========================================
-variable "grafana_admin_password" {
-  description = "Grafana admin password"
-  type        = string
-  default     = "admin"
-  sensitive   = true
 }

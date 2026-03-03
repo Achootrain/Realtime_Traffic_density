@@ -18,13 +18,13 @@ variable "root_volume_size" {
   type        = number
 }
 
-variable "ssh_public_key_path" {
-  description = "Local path to SSH public key"
+variable "ssh_public_key" {
+  description = "SSH public key content"
   type        = string
 }
 
-variable "ssh_private_key_path" {
-  description = "Local path to SSH private key"
+variable "ssh_private_key" {
+  description = "SSH private key content"
   type        = string
   sensitive   = true
 }

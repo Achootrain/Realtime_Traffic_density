@@ -20,28 +20,22 @@ terraform {
     }
   }
 
-  # For production, uncomment and configure remote backend:
-  # backend "s3" {
-  #   bucket         = "traffic-system-tfstate"
-  #   key            = "terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "terraform-locks"
-  #   encrypt        = true
-  # }
+  # Remote backend — stores state in S3 with DynamoDB locking.
+  # The bucket and DynamoDB table must be created manually first.
+  backend "s3" {
+    bucket         = "traffic-system-tfstate"
+    key            = "terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 
-data "local_file" "aws_credentials" {
-  filename = pathexpand(var.aws_credentials_csv_path)
-}
-
-locals {
-  aws_creds = csvdecode(data.local_file.aws_credentials.content)
-}
-
+# AWS provider — uses standard env vars AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY.
+# In CI: set by aws-actions/configure-aws-credentials.
+# Locally: export them or use `aws configure`.
 provider "aws" {
-  region     = var.aws_region
-  access_key = local.aws_creds[0]["Access key ID"]
-  secret_key = local.aws_creds[0]["Secret access key"]
+  region = var.aws_region
 
   default_tags {
     tags = {

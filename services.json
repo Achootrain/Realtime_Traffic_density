@@ -1,0 +1,60 @@
+{
+    "namespace": "traffic",
+    "helm_repos": {
+        "spark-operator": "https://kubeflow.github.io/spark-operator"
+    },
+    "helm_releases": [
+        {
+            "name": "spark-operator-1",
+            "chart": "spark-operator/spark-operator",
+            "set": {
+                "controller.namespaces": "{traffic}",
+                "webhook.enable": "true"
+            }
+        }
+    ],
+    "services": [
+        {
+            "name": "kafka",
+            "source_dir": "kafka",
+            "restart": [
+                "kubectl rollout restart statefulset/kafka -n traffic",
+                "kubectl rollout restart deployment/kafka-producer -n traffic"
+            ]
+        },
+        {
+            "name": "spark",
+            "source_dir": "spark",
+            "restart": [
+                "kubectl delete sparkapplication spark-realtime-python -n traffic --ignore-not-found",
+                "kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found",
+                "sleep 5",
+                "kubectl apply -f /home/ubuntu/k8s/spark-realtime-app.yaml -n traffic",
+                "kubectl apply -f /home/ubuntu/k8s/spark-s3-glacier-app.yaml -n traffic"
+            ]
+        },
+        {
+            "name": "grafana",
+            "source_dir": "k8s/grafana.yaml",
+            "restart": [
+                "kubectl rollout restart deployment/grafana -n traffic"
+            ]
+        },
+        {
+            "name": "timescaledb",
+            "source_dir": "timescaledb",
+            "restart": [
+                "kubectl rollout restart statefulset/timescaledb -n traffic"
+            ]
+        }
+    ],
+    "post_deploy": {
+        "timescaledb_init": {
+            "wait": "kubectl wait --for=condition=ready pod/timescaledb-0 -n traffic --timeout=120s",
+            "commands": [
+                "kubectl cp /home/ubuntu/timescaledb/init.sql traffic/timescaledb-0:/tmp/init.sql",
+                "kubectl exec timescaledb-0 -n traffic -- psql -U postgres -d traffic -f /tmp/init.sql"
+            ]
+        }
+    }
+}
