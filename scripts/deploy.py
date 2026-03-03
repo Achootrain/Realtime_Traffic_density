@@ -75,9 +75,18 @@ def create_secrets():
     """Create K8s secrets from env vars."""
     print(">>> Creating secrets...")
 
-    # Source deploy secrets if available
-    if os.path.exists("/home/ubuntu/.deploy-secrets"):
-        run("source /home/ubuntu/.deploy-secrets", shell=True)
+    # Load deploy secrets file into env vars
+    secrets_file = "/home/ubuntu/.deploy-secrets"
+    if os.path.exists(secrets_file):
+        with open(secrets_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("export ") and "=" in line:
+                    # Parse: export KEY="VALUE"
+                    kv = line[len("export "):]
+                    key, _, value = kv.partition("=")
+                    value = value.strip('"').strip("'")
+                    os.environ[key] = value
 
     ghcr_user = os.environ.get("GHCR_USERNAME", "")
     ghcr_token = os.environ.get("GHCR_TOKEN", "")
