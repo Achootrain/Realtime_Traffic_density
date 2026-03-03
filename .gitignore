@@ -1,4 +1,15 @@
 spark/jars/*
 kafka/data/*
-terraform/terraform.tfvars.example
 .vscode/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/crash.log
+terraform/.terraform.lock.hcl
+terraform/tfplan
+
+# Deploy secrets
+.deploy-secrets

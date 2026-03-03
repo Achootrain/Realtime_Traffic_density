@@ -1,0 +1,34 @@
+# ===========================================
+# Example terraform.tfvars — Copy to terraform.tfvars and fill in values
+# DO NOT commit terraform.tfvars to version control!
+# ===========================================
+
+# AWS credentials are provided via environment variables:
+#   export AWS_ACCESS_KEY_ID="..."
+#   export AWS_SECRET_ACCESS_KEY="..."
+
+aws_region   = "us-east-1"
+project_name = "traffic-system"
+environment  = "dev"
+
+# EC2
+instance_type    = "m7i-flex.large"
+root_volume_size = 40
+
+# SSH — paste the key CONTENT (not file paths)
+ssh_public_key  = "ssh-rsa AAAA...your-public-key..."
+ssh_private_key = <<-EOT
+-----BEGIN RSA PRIVATE KEY-----
+...paste your private key here...
+-----END RSA PRIVATE KEY-----
+EOT
+
+# Networking
+allowed_ssh_cidrs = ["59.153.220.0/28"] # Restrict to your IP for security
+
+# S3
+s3_bucket_name          = "traffic-count-bigdata"
+glacier_transition_days = 30
+
+# GHCR and Grafana credentials are managed via GitHub Actions secrets,
+# not Terraform. See .github/workflows/aws-ec2-deploy.yml
