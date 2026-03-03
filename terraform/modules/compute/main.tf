@@ -87,7 +87,7 @@ resource "aws_instance" "k3s" {
   }
 
   lifecycle {
-    ignore_changes = [ami, user_data]
+    ignore_changes = [ami, user_data, key_name]
   }
 }
 
