@@ -9,6 +9,7 @@
             "chart": "spark-operator/spark-operator",
             "set": {
                 "controller.namespaces": "{traffic}",
+                "spark.jobNamespaces": "{traffic}",
                 "webhook.enable": "true"
             }
         }

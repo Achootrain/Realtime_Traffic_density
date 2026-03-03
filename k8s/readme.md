@@ -84,10 +84,11 @@ chmod +x /home/ubuntu/traffic-deploy/clean.sh
 
 kubectl delete sparkapplication spark-realtime-python -n traffic
 kubectl delete deployment grafana -n traffic
-kubectl delete statefulset timescaledb -n traffic
+kubectl scale statefulset kafka --replicas=0 -n traffic
+kubectl scale statefulset timescaledb --replicas=0 -n traffic
+kubectl delete sparkapplication spark-s3-glacier -n traffic --ignore-not-found
 
 
-```
 # Port Forward
 ```bash
 kubectl port-forward -n traffic svc/grafana 3000:3000 --address 0.0.0.0
