@@ -70,16 +70,7 @@ spec:
         value: "traffic_metrics"
       - name: CHECKPOINT_BASE
         value: "/app/data/checkpoint_v3"
-    securityContext:
-      runAsUser: 185
-      runAsGroup: 185
-      runAsNonRoot: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      seccompProfile:
-        type: RuntimeDefault
+
   executor:
     instances: 1
     coreRequest: "100m"
@@ -119,13 +110,3 @@ spec:
         value: "traffic_metrics"
       - name: CHECKPOINT_BASE
         value: "/app/data/checkpoint_v3"
-    securityContext:
-      runAsUser: 185
-      runAsGroup: 185
-      runAsNonRoot: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      seccompProfile:
-        type: RuntimeDefault
